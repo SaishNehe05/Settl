@@ -1,0 +1,84 @@
+export interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  success_rate: number;
+  customer_value: string;
+  opted_out: boolean;
+}
+
+export interface RecoveryAction {
+  id: string;
+  action_type: string;
+  status: string;
+  razorpay_entity_id?: string;
+  reference_id?: string;
+  policy_result?: string;
+  policy_reason?: string;
+  executed_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  actor: string;
+  event_name: string;
+  reason?: string;
+  log_metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface RecoveryCaseItem {
+  id: string;
+  merchant_id: string;
+  revenue_event_id: string;
+  amount_at_risk_paise: number;
+  recovery_probability: number;
+  root_cause?: string;
+  priority: string;
+  recommended_action?: string;
+  actual_action?: string;
+  attempt_count: number;
+  status: string;
+  amount_recovered_paise: number;
+  escalation_status?: string;
+  customer_name?: string;
+  customer_email?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecoveryCaseDetail extends RecoveryCaseItem {
+  resolved_at?: string;
+  customer?: Customer;
+  event_type?: string;
+  failure_reason?: string;
+  actions: RecoveryAction[];
+  audit_logs: AuditLog[];
+}
+
+export interface DashboardSummary {
+  revenue_at_risk_paise: number;
+  eligible_revenue_paise: number;
+  revenue_recovered_paise: number;
+  recovery_attempts_count: number;
+  recovery_rate: number;
+  guardrail_blocks_count: number;
+  human_escalations_count: number;
+  total_cases_count: number;
+  active_cases_count: number;
+  recovered_cases_count: number;
+  recent_cases: RecoveryCaseItem[];
+}
+
+export interface Policy {
+  id: string;
+  merchant_id: string;
+  max_attempts: number;
+  max_automated_amount_paise: number;
+  min_probability: number;
+  cooldown_minutes: number;
+  human_review_above_paise: number;
+  created_at: string;
+  updated_at: string;
+}
