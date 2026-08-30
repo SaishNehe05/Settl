@@ -2,42 +2,50 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Zap, PlusCircle, CheckCircle2, AlertTriangle, ShieldX } from "lucide-react";
+import { Zap, AlertTriangle, ShieldX, CheckCircle, X } from "lucide-react";
+import { API_BASE } from "@/lib/api";
+
+const SCENARIOS = [
+  {
+    id: "payment_failure_upi",
+    name: "UPI Payment Failure (₹8,499)",
+    desc: "Simulates transient switch timeout. Grounded root-cause diagnosis recommends WhatsApp payment link.",
+    icon: Zap,
+    color: "text-sky-400",
+  },
+  {
+    id: "checkout_abandonment",
+    name: "Checkout Abandonment (₹3,200)",
+    desc: "Customer abandons active checkout session. Agent triggers recovery link with discount code.",
+    icon: AlertTriangle,
+    color: "text-amber-400",
+  },
+  {
+    id: "high_value_escalation",
+    name: "High-Value Transaction (₹45,000)",
+    desc: "Exceeds ₹10,000 autonomous threshold. Policy engine routes case to Human Operator review queue.",
+    icon: ShieldX,
+    color: "text-purple-400",
+  },
+  {
+    id: "customer_opt_out",
+    name: "Opted-Out Customer (₹6,500)",
+    desc: "Customer flagged as opted out of communication. Policy engine immediately blocks contact.",
+    icon: ShieldX,
+    color: "text-rose-400",
+  },
+];
 
 export default function SimulateModal() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [scenario, setScenario] = useState("payment_failure_upi");
   const [loading, setLoading] = useState(false);
-  const [scenario, setScenario] = useState("clean_recovery");
-
-  const scenarios = [
-    {
-      id: "clean_recovery",
-      name: "Clean Payment Failure (₹8,499)",
-      desc: "UPI timeout, strong customer history. Allowed by policy -> Approved for recovery.",
-      icon: CheckCircle2,
-      color: "text-emerald-400",
-    },
-    {
-      id: "high_value",
-      name: "High-Value Transaction (₹45,000)",
-      desc: "Exceeds ₹10,000 automated policy limit. Automatically escalates to human review queue.",
-      icon: AlertTriangle,
-      color: "text-purple-400",
-    },
-    {
-      id: "opt_out",
-      name: "Opted-Out Customer (₹6,500)",
-      desc: "Customer flagged as opted out of communication. Policy engine immediately blocks contact.",
-      icon: ShieldX,
-      color: "text-rose-400",
-    },
-  ];
 
   const handleSimulate = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/events/simulate", {
+      const res = await fetch(`${API_BASE}/api/v1/events/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scenario }),
@@ -88,7 +96,7 @@ export default function SimulateModal() {
             </div>
 
             <div className="space-y-2.5">
-              {scenarios.map((sc) => {
+              {SCENARIOS.map((sc) => {
                 const Icon = sc.icon;
                 const isSelected = scenario === sc.id;
                 return (

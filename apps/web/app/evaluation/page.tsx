@@ -15,6 +15,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { EvaluationSummary } from "@/types/api";
+import { API_BASE } from "@/lib/api";
 
 function formatCurrency(inr: number): string {
   return new Intl.NumberFormat("en-IN", {
@@ -39,7 +40,7 @@ export default function EvaluationPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`http://localhost:8000/api/v1/evaluation/summary?dataset_type=${type}`);
+      const res = await fetch(`${API_BASE}/api/v1/evaluation/summary?dataset_type=${type}`);
       if (!res.ok) throw new Error("Failed to load evaluation data");
       const json = await res.json();
       setData(json);
@@ -54,7 +55,7 @@ export default function EvaluationPage() {
     try {
       setRunning(true);
       setError(null);
-      const res = await fetch("http://localhost:8000/api/v1/evaluation/run", {
+      const res = await fetch(`${API_BASE}/api/v1/evaluation/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dataset_type: datasetType }),

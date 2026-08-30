@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Play, ShieldAlert, X, AlertCircle, Link as LinkIcon, CheckCircle2 } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 
 interface CaseActionsProps {
   caseId: string;
@@ -18,7 +19,7 @@ export default function CaseActions({ caseId, status }: CaseActionsProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/recovery-cases/${caseId}/evaluate`, {
+      const res = await fetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/evaluate`, {
         method: "POST",
       });
       if (!res.ok) throw new Error("Evaluation failed");
@@ -34,7 +35,7 @@ export default function CaseActions({ caseId, status }: CaseActionsProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/recovery-cases/${caseId}/execute`, {
+      const res = await fetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/execute`, {
         method: "POST",
       });
       if (!res.ok) throw new Error("Failed to generate payment link");
@@ -50,7 +51,7 @@ export default function CaseActions({ caseId, status }: CaseActionsProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/webhooks/razorpay/simulate", {
+      const res = await fetch(`${API_BASE}/api/v1/webhooks/razorpay/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ case_id: caseId }),
@@ -69,7 +70,7 @@ export default function CaseActions({ caseId, status }: CaseActionsProps) {
     setError(null);
     try {
       const action = approved ? "approve" : "reject";
-      const res = await fetch(`http://localhost:8000/api/v1/recovery-cases/${caseId}/${action}`, {
+      const res = await fetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: approved ? "Approved by operator" : "Rejected by operator" }),
