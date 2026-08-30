@@ -56,12 +56,24 @@ Phase 2 (Core Recovery Engine) complete! Transitioning into **Phase 3 — AI (St
 - [x] Visual verification in browser: clean failure -> APPROVED -> WAITING_RESULT -> RECOVERED
 - [x] Test suite expanded to 34 tests (34/34 passed in 2.51s)
 
-## Doing (Phase 5 — Real End-to-End Test Loop)
+## Completed (Phase 5 — Real End-to-End Test Loop)
 
-- [ ] Execute full primary case run: `CASE_8499_RECOVERABLE` (₹8,499)
-- [ ] Demonstrate secondary guardrail stopping rule: `CASE_OPTOUT` (customer opt-out)
-- [ ] Demonstrate secondary guardrail stopping rule: `CASE_MAX_ATTEMPTS` (attempt ceiling)
-- [ ] Demonstrate escalation rule: `CASE_HIGH_VALUE` (₹35,000 human review)
+- [x] Execute and verify primary ₹8,499 case (`CASE_8499_RECOVERABLE`) from failure to verified recovery
+- [x] Verify state machine progression through all 8 steps to RECOVERED with emerald proof banner
+- [x] Demonstrate secondary guardrail stopping rule: `CASE_OPTOUT` (customer opt-out strictly enforced, zero links generated)
+- [x] Demonstrate secondary guardrail stopping rule: `CASE_MAX_ATTEMPTS` (attempt ceiling stops outreach)
+- [x] Demonstrate high-value escalation rule: `CASE_HIGH_VALUE` (₹35,000 halts in ESCALATED awaiting human review)
+- [x] Automated end-to-end integration test suite (`tests/test_end_to_end_loop.py`)
+- [x] Expanded test suite to 38 tests (38/38 passed in 2.67s)
+- [x] Verified real-time dashboard metric aggregation in live browser session
+
+## Doing (Phase 6 — Evaluation & Benchmark Harness)
+
+- [ ] Create 5,000 synthetic events dataset generator
+- [ ] Implement 4,000 dev / 1,000 locked test dataset split
+- [ ] Run offline simulation benchmark with precision, recall, and net recovered revenue metrics
+- [ ] Ensure strict isolation between simulation evaluation and live Razorpay test actions (preserving 30-link quota)
+- [ ] Render Evaluation Dashboard in Next.js UI (`/evaluation`)
 
 ## Blocked
 
@@ -69,4 +81,4 @@ None.
 
 ## Next Sprint
 
-Phase 6 — Evaluation (5,000 synthetic events benchmark dataset & simulation metrics).
+Final Polish & Buildathon Submission Package.

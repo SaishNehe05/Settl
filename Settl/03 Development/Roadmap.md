@@ -48,10 +48,10 @@
 
 ## M6 — Closed Loop
 
-- [ ] Real Test Mode recovery
-- [ ] Recovery ledger update
-- [ ] Case becomes RECOVERED
-- [ ] Failure handling
+- [x] Real Test Mode recovery
+- [x] Recovery ledger update
+- [x] Case becomes RECOVERED
+- [x] Failure handling (guardrails, opt-out, max attempts)
 
 ## M7 — Second Scenario
 

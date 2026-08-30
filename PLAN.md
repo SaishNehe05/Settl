@@ -84,26 +84,37 @@
 
 ---
 
-## Phase 4: Razorpay (Test Mode & Webhooks) Implementation Plan
+## Phase 4 Status: ✅ Complete & Running
 
-### 1. Objectives
-1. **Razorpay Service (`services/razorpay_service.py`):**
-   - Official Razorpay SDK integration for Test Mode.
-   - Payment Links creation with paise amounts, custom reference IDs, and case metadata notes.
-   - Idempotency & duplicate protection.
-   - HMAC-SHA256 raw webhook signature verification.
-2. **State Machine Execution Transition:**
-   - `APPROVED` -> `EXECUTING` -> Razorpay API -> `WAITING_RESULT`.
-   - Records `RecoveryAction` with `razorpay_entity_id`.
-3. **Raw Webhook Receiver (`POST /api/v1/webhooks/razorpay`):**
-   - Signature verification using raw request bytes.
-   - Idempotency check via `webhook_events` table.
-   - Handles `payment_link.paid`.
-   - Strictly verifies `paid_amount_paise >= case.amount_at_risk_paise`.
-   - Transitions case to `RECOVERED`.
-   - Appends audit log with webhook actor.
-4. **Interactive UI Capabilities:**
-   - "Generate Razorpay Payment Link" button for approved cases.
-   - Active payment link display with URL copy and "Simulate Customer Payment" test button.
+- Razorpay Test Mode client integration with paise money units
+- Payment Links creation with idempotency and case metadata tracking
+- Raw request body HMAC-SHA256 signature verification
+- `payment_link.paid` webhook receiver with strict amount verification
+- Real-time state transition to `RECOVERED` with emerald proof banner
+- 34/34 unit and integration tests passing in 2.51s
+
+---
+
+## Phase 5: Real End-to-End Test Loop Implementation Plan
+
+### 1. Primary Recovery Case Loop (₹8,499)
+- **Customer:** Arjun Mehta (high-value tier, 85% success rate, consent active).
+- **Failure:** `temporary_bank_failure` (₹8,499).
+- **Execution:** Event &rarr; Risk Engine (86.8%) &rarr; AI Root Cause (`BANK_TECHNICAL`) &rarr; Decision (`CREATE_PAYMENT_LINK`) &rarr; Policy Gate (`ALLOW`) &rarr; Razorpay Payment Link (`plink_...`) &rarr; Payment &rarr; Verified Webhook &rarr; Terminal State: `RECOVERED`.
+
+### 2. Guardrail Stopping Rule Demonstration
+- **Customer:** Priya Nair (opted out: `opted_out = True`).
+- **Failure:** `insufficient_funds` (₹3,200).
+- **Enforcement:** Policy Engine detects opt-out, immediately evaluates to `BLOCK`, halts outreach, creates zero payment links, transitions to `BLOCKED`, and records audit proof.
+
+### 3. High-Value Escalation Demonstration
+- **Customer:** Rajesh Sharma (₹45,000 failure).
+- **Enforcement:** Amount exceeds ₹10,000 threshold &rarr; transitions to `ESCALATED` awaiting human operator review. Operator approves &rarr; transitions to `APPROVED`.
+
+### 4. Verification Deliverables
+- Automated integration test `tests/test_end_to_end_loop.py`.
+- Browser subagent visual demonstration of both cases and dashboard metrics.
+- Complete documentation in Obsidian vault and walkthrough artifact.
+
 
 
