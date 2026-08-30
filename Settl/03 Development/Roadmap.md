@@ -69,8 +69,8 @@
 
 ## M9 — Polish
 
-- [ ] UX
-- [ ] Error states
-- [ ] Demo mode
-- [ ] Observability
-- [ ] Documentation
+- [x] UX (dark theme, glassmorphism, responsive navigation)
+- [x] Error states & deterministic fallbacks
+- [x] Demo mode & simulation modal
+- [x] Observability (immutable audit trail, trace hash, model logging)
+- [x] Documentation (Master README, PRD, Architecture, Walkthrough)

@@ -16,22 +16,24 @@
 - [x] Strict isolation between simulation evaluation and live Razorpay Test Mode
 - [x] Next.js Evaluation Dashboard UI (`/evaluation`) with strategy comparison table
 - [x] 41 automated unit, policy, AI, Razorpay, webhook, and evaluation tests passing in 2.71s
-- [ ] Prepare comprehensive buildathon submission documentation
-- [ ] Final repository cleanup and walkthrough review
+- [x] Prepare comprehensive buildathon submission documentation (`README.md`)
+- [x] Final repository cleanup and walkthrough review
+- [x] All 5 frontend views verified in browser
+- [x] All 41 automated tests passing
 
 ## Progress
 
-| Milestone                 | Status | Notes                                                 |
-| ------------------------- | ------ | ----------------------------------------------------- |
-| M1 — Foundation           | ✅      | FastAPI + Next.js + Supabase live          |
-| M2 — Core Recovery        | ✅      | Ingestion, state machine, risk engine, policy guardrails, audit trail |
+| Milestone                 | Status | Notes                                                                        |
+| ------------------------- | ------ | ---------------------------------------------------------------------------- |
+| M1 — Foundation           | ✅      | FastAPI + Next.js + Supabase live                                            |
+| M2 — Core Recovery        | ✅      | Ingestion, state machine, risk engine, policy guardrails, audit trail        |
 | M3 — AI                   | ✅      | Structured root cause, bounded decisions, Pydantic validation, model logging |
-| M4 — Guardrails           | ✅      | Deterministic attempt limits, amounts, opt-out, cooldown (built in P2) |
-| M5 — Razorpay             | ✅      | Test Mode Payment Link + raw webhook receiver + signature verification |
-| M6 — Closed Loop          | ✅      | Live verified payment recovery of ₹8,499 case + opt-out stopping rule |
-| M7 — Checkout Abandonment | ✅      | Integrated into ingestion, AI diagnosis, and benchmark |
-| M8 — Evaluation           | ✅      | 5k synthetic benchmark + 1k locked test + comparative table |
-| M9 — Polish               | 🔄      | Performance, telemetry, and final polish              |
+| M4 — Guardrails           | ✅      | Deterministic attempt limits, amounts, opt-out, cooldown (built in P2)       |
+| M5 — Razorpay             | ✅      | Test Mode Payment Link + raw webhook receiver + signature verification       |
+| M6 — Closed Loop          | ✅      | Live verified payment recovery of ₹8,499 case + opt-out stopping rule        |
+| M7 — Checkout Abandonment | ✅      | Integrated into ingestion, AI diagnosis, and benchmark                       |
+| M8 — Evaluation           | ✅      | 5k synthetic benchmark + 1k locked test + comparative table                  |
+| M9 — Polish               | ✅      | Master README, quickstart, and full verification                             |
 
 ---
 

@@ -18,10 +18,10 @@ Use this whenever asking a coding AI to change Settl.
 
 ## After coding
 
-- [x] Run tests. (7/7 passed in pytest)
-- [x] Run type checks/lint. (Next.js build succeeded in 28.8s)
-- [x] Run application. (Uvicorn :8000, Next.js :3000 live)
-- [x] Verify the intended flow. (Browser verified overview, cases queue, case detail)
+- [x] Run tests. (41/41 passed in pytest in 2.71s)
+- [x] Run type checks/lint. (Next.js build succeeded in 15.0s)
+- [x] Run application. (FastAPI on :8000, Next.js on :3000 live)
+- [x] Verify the intended flow. (Browser verified all 5 pages: Overview, Queue, Case Detail, Policies, Evaluation)
 - [x] Inspect generated code.
 - [x] Update Obsidian.
 - [x] Mark completed work.
