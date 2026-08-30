@@ -65,13 +65,17 @@ def analyze_case(db: Session, case_id: str) -> RecoveryCase:
     case.status = "ANALYZING"
     db.commit()
 
-    # Step 2: Calculate grounded baseline probability & decision
-    prob, priority, action, root_cause = calculate_risk_and_action(case, customer, event)
-
+    # Step 2: Calculate numerical probability & priority via ML/risk engine (deterministic)
+    prob, priority, baseline_action, _ = calculate_risk_and_action(case, customer, event)
     case.recovery_probability = prob
     case.priority = priority
-    case.recommended_action = action
-    case.root_cause = root_cause
+
+    # Step 3: Execute structured AI root-cause analysis and recovery decision
+    from app.services.ai_service import analyze_and_decide
+    ai_analysis = analyze_and_decide(db, case, customer, event)
+
+    case.recommended_action = ai_analysis.decision.recommended_action
+    case.root_cause = f"[{ai_analysis.root_cause.failure_category}] {ai_analysis.root_cause.summary}"
     case.status = "READY"
     db.flush()
 
@@ -79,14 +83,20 @@ def analyze_case(db: Session, case_id: str) -> RecoveryCase:
         db=db,
         merchant_id=case.merchant_id,
         case_id=case.id,
-        actor="AGENT",
-        event_name="RISK_ANALYZED",
-        reason=f"Assessed {priority} priority, recovery probability {prob*100:.1f}%. Candidate action: {action}.",
+        actor="AI_AGENT",
+        event_name="AI_DIAGNOSIS_COMPLETED",
+        reason=f"Diagnosed {ai_analysis.root_cause.failure_category} ({ai_analysis.root_cause.confidence*100:.0f}% confidence). Action: {ai_analysis.decision.recommended_action} via {ai_analysis.decision.channel}.",
         metadata={
             "recovery_probability": prob,
             "priority": priority,
-            "recommended_action": action,
-            "root_cause": root_cause,
+            "failure_category": ai_analysis.root_cause.failure_category,
+            "recommended_action": ai_analysis.decision.recommended_action,
+            "channel": ai_analysis.decision.channel,
+            "delay_minutes": ai_analysis.decision.delay_minutes,
+            "model_name": ai_analysis.model_name,
+            "latency_ms": ai_analysis.latency_ms,
+            "validation_status": ai_analysis.validation_status,
+            "evidence": ai_analysis.root_cause.evidence,
         },
     )
     db.commit()

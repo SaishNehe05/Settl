@@ -3,33 +3,33 @@
 > **Settl — AI Revenue Recovery Agent**
 
 **Track:** Razorpay Buildathon — Track 03: AI Revenue Recovery  
-**Status:** 🟢 Phase 2 (Core Recovery Engine) Complete — Ready for Phase 3  
-**Current milestone:** M3 — AI (Structured Root Cause & Decision Agent)
+**Status:** 🟢 Phase 3 (AI Engine) Complete — Ready for Phase 4  
+**Current milestone:** M4 — Razorpay Test Mode & Webhooks (Phase 4)
 
 ---
 
-## Current Focus (Phase 3)
+## Current Focus (Phase 4)
 
-- [x] Implement revenue event ingestion (`POST /api/v1/events`) & simulation
-- [x] Implement recovery case transactional state machine (`NEW` -> `APPROVED`/`BLOCKED`/`ESCALATED`)
-- [x] Implement deterministic baseline risk scoring model (calibrated probability & priority)
-- [x] Implement deterministic policy engine guardrails (attempts, limits, opt-out, cooldown)
-- [x] Implement append-only audit logging service
-- [x] Interactive UI: Simulation modal + Case action buttons (evaluate/approve/reject)
-- [x] Verified via 22 unit tests (22/22 passed in 2.51s) & browser subagent
-- [ ] Implement structured LLM root-cause analysis
-- [ ] Implement structured recovery decision output
-- [ ] Validate model outputs with Pydantic schemas
+- [x] Structured LLM root-cause analysis with Pydantic contracts
+- [x] Structured recovery decision output & channel recommendations
+- [x] Rejection of unsupported actions & zero-crash fallback engine
+- [x] Model prediction logging to Supabase `model_predictions` table
+- [x] Interactive UI with grounded evidence tags & model traces
+- [x] 27 unit and integration tests (27/27 passed in 2.48s)
+- [ ] Implement Razorpay Test Mode client & Payment Links service
+- [ ] Implement idempotency keys and duplicate protection
+- [ ] Implement Razorpay raw webhook signature verification
+- [ ] Handle `payment_link.paid` webhook to confirm recovery
 
 ## Progress
 
 | Milestone                 | Status | Notes                                                 |
 | ------------------------- | ------ | ----------------------------------------------------- |
-| M1 — Foundation           | ✅      | FastAPI + Next.js + Alembic + Seed data live          |
+| M1 — Foundation           | ✅      | FastAPI + Next.js + Supabase live          |
 | M2 — Core Recovery        | ✅      | Ingestion, state machine, risk engine, policy guardrails, audit trail |
-| M3 — AI                   | 🔄     | Grounded root-cause explainer + decision agent        |
-| M4 — Guardrails           | ⬜      | Escalations, cooldowns, attempt caps                  |
-| M5 — Razorpay             | ⬜      | Test Mode Payment Link + webhook receiver             |
+| M3 — AI                   | ✅      | Structured root cause, bounded decisions, Pydantic validation, model logging |
+| M4 — Guardrails           | ✅      | Deterministic attempt limits, amounts, opt-out, cooldown (built in P2) |
+| M5 — Razorpay             | 🔄     | Test Mode Payment Link + webhook receiver (Phase 4) |
 | M6 — Closed Loop          | ⬜      | Live verified payment recovery of ₹8,499 case         |
 | M7 — Checkout Abandonment | ⬜      | Secondary lifecycle recovery workflow                 |
 | M8 — Evaluation           | ⬜      | 5k synthetic benchmark + locked test set              |

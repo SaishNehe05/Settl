@@ -5,12 +5,14 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.merchant import Merchant
 from app.models.recovery_case import RecoveryCase
+from app.models.model_prediction import ModelPrediction
 from app.schemas.recovery_case import (
     RecoveryCaseListItem,
     RecoveryCaseDetail,
     RecoveryActionResponse,
     AuditLogResponse,
     CustomerResponse,
+    ModelPredictionResponse,
 )
 from app.api.deps import get_current_merchant
 
@@ -125,6 +127,14 @@ def get_recovery_case(
         for log in c.audit_logs
     ]
     
+    pred = (
+        db.query(ModelPrediction)
+        .filter(ModelPrediction.case_id == c.id)
+        .order_by(ModelPrediction.created_at.desc())
+        .first()
+    )
+    latest_pred_resp = ModelPredictionResponse.model_validate(pred) if pred else None
+
     return RecoveryCaseDetail(
         id=c.id,
         merchant_id=c.merchant_id,
@@ -146,7 +156,8 @@ def get_recovery_case(
         event_type=event_type,
         failure_reason=failure_reason,
         actions=actions,
-        audit_logs=audit_logs
+        audit_logs=audit_logs,
+        latest_prediction=latest_pred_resp,
     )
 
 

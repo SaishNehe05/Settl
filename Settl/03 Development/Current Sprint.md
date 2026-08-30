@@ -30,13 +30,26 @@ Phase 2 (Core Recovery Engine) complete! Transitioning into **Phase 3 — AI (St
 - [x] Expand automated test suite to 22 tests (22/22 passed in 2.51s)
 - [x] Verified full browser event simulation and escalation flow
 
-## Doing (Phase 3 — AI)
+## Completed (Phase 3 — AI)
 
-- [ ] Implement structured LLM root-cause analysis
-- [ ] Implement structured recovery decision output
-- [ ] Validate model outputs with Pydantic schemas
-- [ ] Ensure ML/risk probability remains separated from generative LLM reasoning
-- [ ] Model prediction audit logging
+- [x] Implement structured LLM root-cause analysis with Pydantic contracts
+- [x] Implement structured recovery decision output & channel recommendations
+- [x] Validate model outputs with strict Pydantic schemas (`RootCauseAnalysisOutput`, `RecoveryDecisionOutput`)
+- [x] Ensure ML/risk probability remains strictly in the mathematical risk layer
+- [x] Model prediction audit logging to Supabase `model_predictions` table
+- [x] Rejection of unsupported actions (e.g. attempting to auto-debit cards)
+- [x] Zero-crash deterministic fallback engine
+- [x] Case Detail UI displays structured evidence tags, channel recommendations, and model trace
+- [x] Test suite expanded to 27 tests (27/27 passed in 2.48s)
+
+## Doing (Phase 4 — Razorpay Test Mode & Webhooks)
+
+- [ ] Implement Razorpay Test Mode client configuration
+- [ ] Implement Razorpay Payment Links creation service
+- [ ] Implement idempotency keys and duplicate protection
+- [ ] Implement Razorpay raw webhook signature verification
+- [ ] Handle `payment_link.paid` webhook
+- [ ] Verify payment amount and transition case to `RECOVERED`
 
 ## Blocked
 
@@ -44,4 +57,4 @@ None.
 
 ## Next Sprint
 
-Phase 4 — Razorpay Test Mode Payment Links & Webhooks.
+Phase 5 — End-to-End Test (Live ₹8,499 case recovery & guardrail demonstration).

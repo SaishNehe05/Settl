@@ -61,6 +61,21 @@ class RecoveryCaseListItem(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ModelPredictionResponse(BaseModel):
+    id: str
+    case_id: str
+    model_name: str
+    model_version: str
+    probability: float
+    root_cause_prediction: Optional[str] = None
+    recommended_action: Optional[str] = None
+    reason: Optional[str] = None
+    features_hash: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class RecoveryCaseDetail(BaseModel):
     id: str
     merchant_id: str
@@ -85,6 +100,7 @@ class RecoveryCaseDetail(BaseModel):
     failure_reason: Optional[str] = None
     actions: List[RecoveryActionResponse] = []
     audit_logs: List[AuditLogResponse] = []
+    latest_prediction: Optional[ModelPredictionResponse] = None
 
     model_config = {"from_attributes": True}
 

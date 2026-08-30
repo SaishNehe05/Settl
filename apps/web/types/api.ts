@@ -48,6 +48,20 @@ export interface RecoveryCaseItem {
   updated_at: string;
 }
 
+export interface ModelPrediction {
+  id: string;
+  case_id: string;
+  model_name: string;
+  model_version: string;
+  probability: number;
+  root_cause_prediction?: string;
+  recommended_action?: string;
+  reason?: string;
+  features_hash?: string;
+  validation_status?: string;
+  created_at: string;
+}
+
 export interface RecoveryCaseDetail extends RecoveryCaseItem {
   resolved_at?: string;
   customer?: Customer;
@@ -55,6 +69,7 @@ export interface RecoveryCaseDetail extends RecoveryCaseItem {
   failure_reason?: string;
   actions: RecoveryAction[];
   audit_logs: AuditLog[];
+  latest_prediction?: ModelPrediction;
 }
 
 export interface DashboardSummary {

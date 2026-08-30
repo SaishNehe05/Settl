@@ -21,11 +21,11 @@
 
 ## M3 — AI
 
-- [ ] Root-cause agent
-- [ ] Recovery probability model
-- [ ] Decision agent
-- [ ] Structured outputs
-- [ ] Model logging
+- [x] Root-cause agent
+- [x] Recovery probability model
+- [x] Decision agent
+- [x] Structured outputs
+- [x] Model logging
 
 ## M4 — Guardrails
 

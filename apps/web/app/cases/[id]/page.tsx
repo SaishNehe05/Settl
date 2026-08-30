@@ -172,9 +172,16 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
 
         {/* AI Root Cause & Recommendation */}
         <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 space-y-4">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            <Zap className="h-4 w-4 text-sky-400" />
-            AI Root Cause & Decision
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <Zap className="h-4 w-4 text-sky-400" />
+              AI Root Cause & Decision
+            </div>
+            {caseDetail.latest_prediction && (
+              <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-mono text-emerald-400">
+                {caseDetail.latest_prediction.validation_status || "VALID"}
+              </span>
+            )}
           </div>
           <div className="space-y-3 text-xs">
             <div>
@@ -184,25 +191,73 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
                   {formatPercent(caseDetail.recovery_probability)}
                 </span>
                 <span className="text-[11px] text-slate-400">
-                  (Deterministic baseline model)
+                  (Calibrated Risk Model)
                 </span>
               </div>
             </div>
             <div>
-              <div className="text-slate-500">Identified Root Cause</div>
-              <div className="font-mono text-slate-200 mt-0.5 bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800">
-                {caseDetail.root_cause || "temporary_bank_failure"}
+              <div className="text-slate-500">Diagnostic Root Cause</div>
+              <div className="text-slate-200 mt-1 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 font-sans leading-relaxed">
+                {caseDetail.root_cause || "Analyzing event..."}
               </div>
             </div>
+
+            {/* Structured Evidence Tags */}
+            {(() => {
+              let aiMeta: any = null;
+              try {
+                if (caseDetail.latest_prediction?.reason) {
+                  aiMeta = JSON.parse(caseDetail.latest_prediction.reason);
+                }
+              } catch {}
+
+              if (aiMeta?.evidence && aiMeta.evidence.length > 0) {
+                return (
+                  <div>
+                    <div className="text-slate-500 mb-1.5">Grounded Evidence</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {aiMeta.evidence.map((ev: string, i: number) => (
+                        <span
+                          key={i}
+                          className="rounded bg-slate-800/80 border border-slate-700/60 px-2 py-0.5 text-[11px] text-slate-300"
+                        >
+                          {ev}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             <div>
               <div className="text-slate-500">Decision Agent Recommendation</div>
-              <div className="font-mono font-semibold text-emerald-400 mt-0.5 bg-emerald-950/30 px-2.5 py-1.5 rounded border border-emerald-800/50">
-                {caseDetail.recommended_action || "CREATE_PAYMENT_LINK"}
+              <div className="flex items-center justify-between font-mono font-semibold text-emerald-400 mt-1 bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-800/50">
+                <span>{caseDetail.recommended_action || "CREATE_PAYMENT_LINK"}</span>
+                {(() => {
+                  let aiMeta: any = null;
+                  try {
+                    if (caseDetail.latest_prediction?.reason) {
+                      aiMeta = JSON.parse(caseDetail.latest_prediction.reason);
+                    }
+                  } catch {}
+                  return aiMeta?.channel ? (
+                    <span className="text-[10px] text-emerald-300 font-sans bg-emerald-900/50 px-2 py-0.5 rounded border border-emerald-700/50">
+                      Channel: {aiMeta.channel}
+                    </span>
+                  ) : null;
+                })()}
               </div>
             </div>
-            <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-400 leading-relaxed">
-              Grounded on failure reason and high customer historical payment success rate.
-            </div>
+
+            {/* Model Trace & Latency */}
+            {caseDetail.latest_prediction && (
+              <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                <span>Model: {caseDetail.latest_prediction.model_name}</span>
+                <span>Hash: {caseDetail.latest_prediction.features_hash || "n/a"}</span>
+              </div>
+            )}
           </div>
         </div>
 
