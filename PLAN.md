@@ -73,22 +73,37 @@
 
 ---
 
-## Phase 3: AI (Root Cause & Decision Agent) Implementation Plan
+## Phase 3 Status: ✅ Complete & Running
+
+- Pydantic structured output contracts (`RootCauseAnalysisOutput`, `RecoveryDecisionOutput`)
+- AI orchestration service with zero-downtime deterministic fallback
+- Rejection of unsupported actions
+- Model prediction persistence in Supabase `model_predictions` table
+- Interactive UI: Diagnostic root-cause cards, grounded evidence tags, model trace
+- 27/27 unit tests passing in 2.48s
+
+---
+
+## Phase 4: Razorpay (Test Mode & Webhooks) Implementation Plan
 
 ### 1. Objectives
-1. **Structured Output Schemas (`app/schemas/ai.py`):**
-   - `RootCauseAnalysisOutput` (failure_category, summary, confidence, evidence, sentiment risk).
-   - `RecoveryDecisionOutput` (strictly bounded action Literal, channel, delay_minutes, reasoning).
-2. **AI Orchestration Service (`app/services/ai_service.py`):**
-   - Provider abstraction (OpenAI / Gemini / Offline-ready reasoning engine).
-   - Strict Pydantic schema validation.
-   - Guardrails against unsupported actions (e.g. auto-charging cards).
-   - Zero-crash fallback to deterministic baseline.
-3. **Model Prediction Audit Logging:**
-   - Persist all LLM inferences to `model_predictions` table.
-4. **Integration with State Machine:**
-   - Wire AI diagnosis & decision into `analyze_case(case_id)`.
-   - Preserve numerical probability in the ML/risk layer.
-5. **Interactive UI Display:**
-   - AI diagnostic cards, evidence tags, channel recommendations, and model trace in Case Detail view.
+1. **Razorpay Service (`services/razorpay_service.py`):**
+   - Official Razorpay SDK integration for Test Mode.
+   - Payment Links creation with paise amounts, custom reference IDs, and case metadata notes.
+   - Idempotency & duplicate protection.
+   - HMAC-SHA256 raw webhook signature verification.
+2. **State Machine Execution Transition:**
+   - `APPROVED` -> `EXECUTING` -> Razorpay API -> `WAITING_RESULT`.
+   - Records `RecoveryAction` with `razorpay_entity_id`.
+3. **Raw Webhook Receiver (`POST /api/v1/webhooks/razorpay`):**
+   - Signature verification using raw request bytes.
+   - Idempotency check via `webhook_events` table.
+   - Handles `payment_link.paid`.
+   - Strictly verifies `paid_amount_paise >= case.amount_at_risk_paise`.
+   - Transitions case to `RECOVERED`.
+   - Appends audit log with webhook actor.
+4. **Interactive UI Capabilities:**
+   - "Generate Razorpay Payment Link" button for approved cases.
+   - Active payment link display with URL copy and "Simulate Customer Payment" test button.
+
 

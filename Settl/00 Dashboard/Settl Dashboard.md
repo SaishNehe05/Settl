@@ -3,23 +3,22 @@
 > **Settl — AI Revenue Recovery Agent**
 
 **Track:** Razorpay Buildathon — Track 03: AI Revenue Recovery  
-**Status:** 🟢 Phase 3 (AI Engine) Complete — Ready for Phase 4  
-**Current milestone:** M4 — Razorpay Test Mode & Webhooks (Phase 4)
+**Status:** 🟢 Phase 4 (Razorpay Integration & Webhooks) Complete — Ready for Phase 5  
+**Current milestone:** M6 — Real End-to-End Closed Loop (Phase 5)
 
 ---
 
-## Current Focus (Phase 4)
+## Current Focus (Phase 5)
 
-- [x] Structured LLM root-cause analysis with Pydantic contracts
-- [x] Structured recovery decision output & channel recommendations
-- [x] Rejection of unsupported actions & zero-crash fallback engine
-- [x] Model prediction logging to Supabase `model_predictions` table
-- [x] Interactive UI with grounded evidence tags & model traces
-- [x] 27 unit and integration tests (27/27 passed in 2.48s)
-- [ ] Implement Razorpay Test Mode client & Payment Links service
-- [ ] Implement idempotency keys and duplicate protection
-- [ ] Implement Razorpay raw webhook signature verification
-- [ ] Handle `payment_link.paid` webhook to confirm recovery
+- [x] Razorpay Test Mode Payment Links creation in paise
+- [x] Idempotency keys and duplicate protection
+- [x] Cryptographic HMAC-SHA256 signature verification on raw bytes
+- [x] Payment verification & state transition to `RECOVERED` via webhook
+- [x] UI buttons: Create Payment Link & Simulate Webhook Payment
+- [x] 34 unit and integration tests (34/34 passed in 2.51s)
+- [ ] Run full end-to-end test on primary ₹8,499 case (`CASE_8499_RECOVERABLE`)
+- [ ] Run guardrail test demonstrating blocked attempt on opt-out customer (`CASE_OPTOUT`)
+- [ ] Run guardrail test demonstrating max attempts ceiling (`CASE_MAX_ATTEMPTS`)
 
 ## Progress
 
@@ -29,7 +28,7 @@
 | M2 — Core Recovery        | ✅      | Ingestion, state machine, risk engine, policy guardrails, audit trail |
 | M3 — AI                   | ✅      | Structured root cause, bounded decisions, Pydantic validation, model logging |
 | M4 — Guardrails           | ✅      | Deterministic attempt limits, amounts, opt-out, cooldown (built in P2) |
-| M5 — Razorpay             | 🔄     | Test Mode Payment Link + webhook receiver (Phase 4) |
+| M5 — Razorpay             | ✅      | Test Mode Payment Link + raw webhook receiver + signature verification |
 | M6 — Closed Loop          | ⬜      | Live verified payment recovery of ₹8,499 case         |
 | M7 — Checkout Abandonment | ⬜      | Secondary lifecycle recovery workflow                 |
 | M8 — Evaluation           | ⬜      | 5k synthetic benchmark + locked test set              |

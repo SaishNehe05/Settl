@@ -29,22 +29,22 @@
 
 ## M4 — Guardrails
 
-- [ ] Attempt limits
-- [ ] Amount limits
-- [ ] Cooldown
-- [ ] Customer opt-out
-- [ ] Human escalation
-- [ ] Stop rules
-- [ ] Audit logs
+- [x] Attempt limits
+- [x] Amount limits
+- [x] Cooldown
+- [x] Customer opt-out
+- [x] Human escalation
+- [x] Stop rules
+- [x] Audit logs
 
 ## M5 — Razorpay
 
-- [ ] Test credentials
-- [ ] Payment Link service
-- [ ] Notification
-- [ ] Webhook endpoint
-- [ ] Signature verification
-- [ ] payment_link.paid
+- [x] Test credentials
+- [x] Payment Link service
+- [x] Notification
+- [x] Webhook endpoint
+- [x] Signature verification
+- [x] payment_link.paid
 
 ## M6 — Closed Loop
 

@@ -221,3 +221,21 @@ def reject_escalated_case(
     reason = req.reason if req else None
     handle_human_review(db, case_id, approved=False, reason=reason)
     return get_recovery_case(case_id, current_merchant, db)
+
+
+@router.post("/{case_id}/execute", response_model=RecoveryCaseDetail)
+def execute_case(
+    case_id: str,
+    current_merchant: Merchant = Depends(get_current_merchant),
+    db: Session = Depends(get_db)
+):
+    from app.services.recovery_service import execute_approved_action
+    c = db.query(RecoveryCase).filter(
+        RecoveryCase.id == case_id,
+        RecoveryCase.merchant_id == current_merchant.id
+    ).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    execute_approved_action(db, case_id)
+    return get_recovery_case(case_id, current_merchant, db)

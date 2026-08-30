@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Play, ShieldAlert, X, AlertCircle } from "lucide-react";
+import { Check, Play, ShieldAlert, X, AlertCircle, Link as LinkIcon, CheckCircle2 } from "lucide-react";
 
 interface CaseActionsProps {
   caseId: string;
@@ -25,6 +25,40 @@ export default function CaseActions({ caseId, status }: CaseActionsProps) {
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Failed to evaluate case");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExecute = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/recovery-cases/${caseId}/execute`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to generate payment link");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Execution error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSimulateWebhook = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/webhooks/razorpay/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ case_id: caseId }),
+      });
+      if (!res.ok) throw new Error("Failed to dispatch simulation webhook");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Webhook error");
     } finally {
       setLoading(false);
     }
@@ -58,15 +92,41 @@ export default function CaseActions({ caseId, status }: CaseActionsProps) {
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        {/* On-demand evaluation button */}
-        <button
-          onClick={handleEvaluate}
-          disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
-        >
-          <Play className="h-3.5 w-3.5 text-sky-400" />
-          {loading ? "Evaluating..." : "Run Policy Check"}
-        </button>
+        {/* On-demand evaluation button (when not yet approved or recovered) */}
+        {!["APPROVED", "WAITING_RESULT", "RECOVERED"].includes(status) && (
+          <button
+            onClick={handleEvaluate}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
+          >
+            <Play className="h-3.5 w-3.5 text-sky-400" />
+            {loading ? "Evaluating..." : "Run Policy Check"}
+          </button>
+        )}
+
+        {/* Phase 4: Execute Razorpay Payment Link when APPROVED */}
+        {status === "APPROVED" && (
+          <button
+            onClick={handleExecute}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-sky-500 transition-colors shadow-lg shadow-sky-600/25 disabled:opacity-50"
+          >
+            <LinkIcon className="h-3.5 w-3.5" />
+            {loading ? "Generating Link..." : "Create Razorpay Payment Link"}
+          </button>
+        )}
+
+        {/* Phase 4: Simulate Customer Payment Webhook when WAITING_RESULT */}
+        {status === "WAITING_RESULT" && (
+          <button
+            onClick={handleSimulateWebhook}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-600/25 disabled:opacity-50 animate-pulse"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {loading ? "Processing Webhook..." : "Simulate Customer Payment (Webhook)"}
+          </button>
+        )}
 
         {/* Human Escalation Review Buttons */}
         {status === "ESCALATED" && (

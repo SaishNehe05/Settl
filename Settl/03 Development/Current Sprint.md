@@ -42,14 +42,26 @@ Phase 2 (Core Recovery Engine) complete! Transitioning into **Phase 3 — AI (St
 - [x] Case Detail UI displays structured evidence tags, channel recommendations, and model trace
 - [x] Test suite expanded to 27 tests (27/27 passed in 2.48s)
 
-## Doing (Phase 4 — Razorpay Test Mode & Webhooks)
+## Completed (Phase 4 — Razorpay Test Mode & Webhooks)
 
-- [ ] Implement Razorpay Test Mode client configuration
-- [ ] Implement Razorpay Payment Links creation service
-- [ ] Implement idempotency keys and duplicate protection
-- [ ] Implement Razorpay raw webhook signature verification
-- [ ] Handle `payment_link.paid` webhook
-- [ ] Verify payment amount and transition case to `RECOVERED`
+- [x] Implement Razorpay Test Mode client configuration
+- [x] Implement Razorpay Payment Links creation service in paise
+- [x] Implement idempotency keys and duplicate protection
+- [x] Implement Razorpay raw webhook signature verification (HMAC-SHA256)
+- [x] Handle `payment_link.paid` webhook
+- [x] Strictly verify payment amount (`paid >= amount_at_risk_paise`)
+- [x] Transition case to `RECOVERED`, record action as `SUCCESS`, log audit trail
+- [x] Webhook simulation endpoint (`POST /api/v1/webhooks/razorpay/simulate`)
+- [x] Interactive UI: Create Payment Link button, live link card, and Simulate Webhook Payment trigger
+- [x] Visual verification in browser: clean failure -> APPROVED -> WAITING_RESULT -> RECOVERED
+- [x] Test suite expanded to 34 tests (34/34 passed in 2.51s)
+
+## Doing (Phase 5 — Real End-to-End Test Loop)
+
+- [ ] Execute full primary case run: `CASE_8499_RECOVERABLE` (₹8,499)
+- [ ] Demonstrate secondary guardrail stopping rule: `CASE_OPTOUT` (customer opt-out)
+- [ ] Demonstrate secondary guardrail stopping rule: `CASE_MAX_ATTEMPTS` (attempt ceiling)
+- [ ] Demonstrate escalation rule: `CASE_HIGH_VALUE` (₹35,000 human review)
 
 ## Blocked
 
@@ -57,4 +69,4 @@ None.
 
 ## Next Sprint
 
-Phase 5 — End-to-End Test (Live ₹8,499 case recovery & guardrail demonstration).
+Phase 6 — Evaluation (5,000 synthetic events benchmark dataset & simulation metrics).

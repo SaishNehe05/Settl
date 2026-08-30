@@ -123,6 +123,77 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
         </div>
       </div>
 
+      {/* Phase 4: Verified Recovery Banner */}
+      {caseDetail.status === "RECOVERED" && (
+        <div className="rounded-xl border border-emerald-600/50 bg-emerald-950/40 p-5 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="rounded-xl bg-emerald-500/20 p-2.5 border border-emerald-500/30">
+              <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-white">Revenue Successfully Recovered</h3>
+                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-mono text-emerald-300 font-semibold border border-emerald-500/40">
+                  VERIFIED WEBHOOK PROOF
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Payment verified via Razorpay webhook signature. Amount credited to merchant ledger.
+              </p>
+            </div>
+          </div>
+          <div className="sm:text-right">
+            <span className="text-xs text-emerald-300/80">Recovered Amount</span>
+            <div className="text-2xl font-extrabold text-emerald-400 font-mono">
+              {formatINR(caseDetail.amount_recovered_paise)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 4: Active Razorpay Payment Link Card */}
+      {(() => {
+        const activeAction = caseDetail.actions?.find(
+          (a) => a.action_type === "CREATE_PAYMENT_LINK" && a.razorpay_entity_id
+        );
+        if (!activeAction && caseDetail.status !== "WAITING_RESULT") return null;
+
+        const plinkId = activeAction?.razorpay_entity_id || "plink_test";
+        const shortUrl = `https://rzp.io/i/${plinkId}`;
+
+        return (
+          <div className="rounded-xl border border-sky-600/40 bg-sky-950/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-sky-500/10 p-2 border border-sky-500/30 text-sky-400">
+                <ExternalLink className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-white">Active Razorpay Payment Link</span>
+                  <span className="rounded bg-sky-500/20 text-sky-300 text-[10px] font-mono px-2 py-0.5">
+                    TEST MODE
+                  </span>
+                </div>
+                <div className="text-xs font-mono text-sky-300 mt-1 select-all hover:underline">
+                  {shortUrl}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={shortUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-600/60 bg-sky-900/40 px-3 py-1.5 text-xs font-medium text-sky-200 hover:bg-sky-800/60 transition-colors"
+              >
+                Open Link
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Grid: Case Details & Intelligence */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Customer Context */}

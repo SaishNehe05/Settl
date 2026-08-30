@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
@@ -212,6 +212,129 @@ def handle_human_review(db: Session, case_id: str, approved: bool, reason: Optio
         event_name=log_event,
         reason=log_reason,
         metadata={"decision": "APPROVED" if approved else "REJECTED", "operator_note": reason},
+    )
+    db.commit()
+    db.refresh(case)
+    return case
+
+
+def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Dict[str, Any]]:
+    """
+    Executes an authorized action by creating a Razorpay Payment Link.
+    Transitions: APPROVED -> EXECUTING -> WAITING_RESULT
+    """
+    from datetime import datetime, timezone
+    from app.services.razorpay_service import create_recovery_payment_link
+
+    case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    if case.status != "APPROVED":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only APPROVED cases can be executed (current status: {case.status})"
+        )
+
+    customer = case.revenue_event.customer if case.revenue_event else None
+    order = case.revenue_event.order if case.revenue_event else None
+
+    # Step 1: Transition to EXECUTING
+    case.status = "EXECUTING"
+    case.attempt_count += 1
+    db.flush()
+
+    # Step 2: Call Razorpay Payment Link Service
+    link_response = create_recovery_payment_link(db, case, customer, order)
+
+    # Step 3: Record RecoveryAction
+    action = RecoveryAction(
+        case_id=case.id,
+        action_type="CREATE_PAYMENT_LINK",
+        status="PENDING",
+        razorpay_entity_id=link_response.get("id"),
+        reference_id=link_response.get("reference_id"),
+        policy_result="ALLOW",
+        policy_reason="Deterministic policy authorized payment link creation",
+        executed_at=datetime.now(timezone.utc),
+    )
+    db.add(action)
+
+    # Step 4: Transition to WAITING_RESULT
+    case.status = "WAITING_RESULT"
+    case.actual_action = "CREATE_PAYMENT_LINK"
+
+    log_audit_event(
+        db=db,
+        merchant_id=case.merchant_id,
+        case_id=case.id,
+        actor="SYSTEM",
+        event_name="PAYMENT_LINK_ISSUED",
+        reason=f"Generated Razorpay Payment Link {link_response.get('id')} for ₹{case.amount_at_risk_paise/100:,.2f}.",
+        metadata={
+            "payment_link_id": link_response.get("id"),
+            "short_url": link_response.get("short_url"),
+            "amount_paise": case.amount_at_risk_paise,
+            "attempt_number": case.attempt_count,
+        },
+    )
+    db.commit()
+    db.refresh(case)
+    return case, link_response
+
+
+def handle_payment_recovered(
+    db: Session,
+    case_id: str,
+    paid_amount_paise: int,
+    payment_id: str,
+    external_event_id: Optional[str] = None,
+) -> RecoveryCase:
+    """
+    Validates payment proof from webhook and marks case RECOVERED.
+    Strict Invariant: paid_amount_paise must be >= amount_at_risk_paise.
+    """
+    from datetime import datetime, timezone
+
+    case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    # Invariant: Amount integrity verification
+    if paid_amount_paise < case.amount_at_risk_paise:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Amount mismatch: paid {paid_amount_paise} paise is less than required {case.amount_at_risk_paise} paise"
+        )
+
+    # Update case to terminal RECOVERED state
+    case.status = "RECOVERED"
+    case.amount_recovered_paise = paid_amount_paise
+    case.resolved_at = datetime.now(timezone.utc)
+
+    # Update pending action to SUCCESS
+    pending_action = (
+        db.query(RecoveryAction)
+        .filter(RecoveryAction.case_id == case.id, RecoveryAction.status == "PENDING")
+        .order_by(RecoveryAction.executed_at.desc())
+        .first()
+    )
+    if pending_action:
+        pending_action.status = "SUCCESS"
+
+    # Append audit trail proof
+    log_audit_event(
+        db=db,
+        merchant_id=case.merchant_id,
+        case_id=case.id,
+        actor="RAZORPAY_WEBHOOK",
+        event_name="PAYMENT_RECOVERED",
+        reason=f"Verified Razorpay payment {payment_id} confirmed recovery of ₹{paid_amount_paise/100:,.2f}.",
+        metadata={
+            "payment_id": payment_id,
+            "amount_recovered_paise": paid_amount_paise,
+            "external_event_id": external_event_id,
+        },
     )
     db.commit()
     db.refresh(case)
