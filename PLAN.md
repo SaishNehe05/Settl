@@ -95,26 +95,36 @@
 
 ---
 
-## Phase 5: Real End-to-End Test Loop Implementation Plan
+## Phase 5 Status: ✅ Complete & Running
 
-### 1. Primary Recovery Case Loop (₹8,499)
-- **Customer:** Arjun Mehta (high-value tier, 85% success rate, consent active).
-- **Failure:** `temporary_bank_failure` (₹8,499).
-- **Execution:** Event &rarr; Risk Engine (86.8%) &rarr; AI Root Cause (`BANK_TECHNICAL`) &rarr; Decision (`CREATE_PAYMENT_LINK`) &rarr; Policy Gate (`ALLOW`) &rarr; Razorpay Payment Link (`plink_...`) &rarr; Payment &rarr; Verified Webhook &rarr; Terminal State: `RECOVERED`.
+- Primary ₹8,499 case (`CASE_8499_RECOVERABLE`) executed through complete 8-step lifecycle into verified `RECOVERED` state
+- Guardrail stopping rule verified: `CASE_OPTOUT` (customer opt-out halts recovery, zero links generated)
+- Guardrail stopping rule verified: `CASE_MAX_ATTEMPTS` (attempt ceiling stops automated recovery)
+- High-value escalation verified: `CASE_HIGH_VALUE` (₹35,000 halts in `ESCALATED`, operator reviews & approves)
+- Automated test suite expanded to 38 tests passing in 2.67s
+- Real-time dashboard metric aggregation verified in live browser session
 
-### 2. Guardrail Stopping Rule Demonstration
-- **Customer:** Priya Nair (opted out: `opted_out = True`).
-- **Failure:** `insufficient_funds` (₹3,200).
-- **Enforcement:** Policy Engine detects opt-out, immediately evaluates to `BLOCK`, halts outreach, creates zero payment links, transitions to `BLOCKED`, and records audit proof.
+---
 
-### 3. High-Value Escalation Demonstration
-- **Customer:** Rajesh Sharma (₹45,000 failure).
-- **Enforcement:** Amount exceeds ₹10,000 threshold &rarr; transitions to `ESCALATED` awaiting human operator review. Operator approves &rarr; transitions to `APPROVED`.
+## Phase 6: Evaluation & Benchmark Harness Implementation Plan
 
-### 4. Verification Deliverables
-- Automated integration test `tests/test_end_to_end_loop.py`.
-- Browser subagent visual demonstration of both cases and dashboard metrics.
-- Complete documentation in Obsidian vault and walkthrough artifact.
+### 1. Synthetic Dataset Generator (`app/evaluation/dataset_generator.py`)
+- Generates 5,000 realistic e-commerce revenue leakage events with seed 42.
+- 4,000 development / 1,000 locked test dataset split.
+- Ground truth recovery labels (`is_recoverable`, `optimal_action`, `ground_truth_channel`).
+
+### 2. Simulation Benchmark Engine (`app/evaluation/simulation_engine.py`)
+- Evaluates 1,000 locked test events across 3 strategies:
+  1. Settl AI Autonomous Recovery Agent
+  2. Naive Rule-Based Baseline (blind retries)
+  3. No-Action Baseline (0% recovery)
+- Computes Precision, Recall, False Positives avoided, Net Recovered Revenue, and Guardrail Interventions.
+- **Strict Invariant:** 100% offline simulation, zero calls to live Razorpay API (preserving 30-link quota).
+
+### 3. REST Endpoints & UI
+- Endpoints: `GET /api/v1/evaluation/summary`, `POST /api/v1/evaluation/run`, `GET /api/v1/evaluation/confusion-matrix`.
+- Next.js UI: Full Evaluation Dashboard at `/evaluation` with benchmark cards, strategy comparison table, confusion matrix, and category breakdown.
+
 
 
 

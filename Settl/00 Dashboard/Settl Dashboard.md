@@ -3,23 +3,21 @@
 > **Settl — AI Revenue Recovery Agent**
 
 **Track:** Razorpay Buildathon — Track 03: AI Revenue Recovery  
-**Status:** 🟢 Phase 5 (Real End-to-End Test Loop) Complete — Ready for Phase 6  
-**Current milestone:** M8 — Evaluation & Simulation Benchmark (Phase 6)
+**Status:** 🟢 Phase 6 (Evaluation & Benchmark Harness) Complete — Ready for Final Polish & Submission  
+**Current milestone:** M9 — Final Polish & Submission Package
 
 ---
 
-## Current Focus (Phase 6)
+## Current Focus (Final Polish & Submission)
 
-- [x] Primary ₹8,499 case verified end-to-end (`CASE_8499_RECOVERABLE`)
-- [x] Secondary guardrail stopping rule verified (`CASE_OPTOUT`)
-- [x] Max attempts ceiling verified (`CASE_MAX_ATTEMPTS`)
-- [x] High-value escalation verified (`CASE_HIGH_VALUE`)
-- [x] 38 automated unit, policy, AI, and integration tests passing in 2.67s
-- [x] Real-time dashboard metric aggregation verified in live browser session
-- [ ] Generate 5,000 synthetic events dataset
-- [ ] 4,000 dev / 1,000 locked test dataset split
-- [ ] Offline simulation evaluation benchmark with recovery metrics
-- [ ] Ensure strict separation between simulation benchmark and live Razorpay test actions
+- [x] 5,000 synthetic events dataset generator (`seed=42`)
+- [x] 4,000 dev / 1,000 locked test dataset split
+- [x] Offline simulation evaluation engine computing precision, recall, net revenue
+- [x] Strict isolation between simulation evaluation and live Razorpay Test Mode
+- [x] Next.js Evaluation Dashboard UI (`/evaluation`) with strategy comparison table
+- [x] 41 automated unit, policy, AI, Razorpay, webhook, and evaluation tests passing in 2.71s
+- [ ] Prepare comprehensive buildathon submission documentation
+- [ ] Final repository cleanup and walkthrough review
 
 ## Progress
 
@@ -31,9 +29,9 @@
 | M4 — Guardrails           | ✅      | Deterministic attempt limits, amounts, opt-out, cooldown (built in P2) |
 | M5 — Razorpay             | ✅      | Test Mode Payment Link + raw webhook receiver + signature verification |
 | M6 — Closed Loop          | ✅      | Live verified payment recovery of ₹8,499 case + opt-out stopping rule |
-| M7 — Checkout Abandonment | 🔄      | Integrated in event ingestion & risk models |
-| M8 — Evaluation           | 🔄      | 5k synthetic benchmark + locked test set (Phase 6) |
-| M9 — Polish               | ⬜      | Performance, telemetry, and final polish              |
+| M7 — Checkout Abandonment | ✅      | Integrated into ingestion, AI diagnosis, and benchmark |
+| M8 — Evaluation           | ✅      | 5k synthetic benchmark + 1k locked test + comparative table |
+| M9 — Polish               | 🔄      | Performance, telemetry, and final polish              |
 
 ---
 

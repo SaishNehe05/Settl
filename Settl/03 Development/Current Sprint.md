@@ -67,13 +67,22 @@ Phase 2 (Core Recovery Engine) complete! Transitioning into **Phase 3 — AI (St
 - [x] Expanded test suite to 38 tests (38/38 passed in 2.67s)
 - [x] Verified real-time dashboard metric aggregation in live browser session
 
-## Doing (Phase 6 — Evaluation & Benchmark Harness)
+## Completed (Phase 6 — Evaluation & Benchmark Harness)
 
-- [ ] Create 5,000 synthetic events dataset generator
-- [ ] Implement 4,000 dev / 1,000 locked test dataset split
-- [ ] Run offline simulation benchmark with precision, recall, and net recovered revenue metrics
-- [ ] Ensure strict isolation between simulation evaluation and live Razorpay test actions (preserving 30-link quota)
-- [ ] Render Evaluation Dashboard in Next.js UI (`/evaluation`)
+- [x] Create 5,000 synthetic events dataset generator with seed=42 (`app/evaluation/dataset_generator.py`)
+- [x] Implement 4,000 dev / 1,000 locked test dataset split (`evaluation_dev_4000.json`, `evaluation_locked_test_1000.json`)
+- [x] Ground-truth recoverability labels (`is_recoverable`, `optimal_action`, `optimal_channel`)
+- [x] Run offline simulation benchmark with precision, recall, net recovered revenue, and false positive metrics
+- [x] Ensure strict isolation between simulation evaluation and live Razorpay test actions (preserving 30-link quota)
+- [x] Build interactive Next.js Evaluation Dashboard UI (`/evaluation`) with comparative table and confusion matrix
+- [x] Automated test suite expanded to 41 tests (41/41 passed in 2.71s)
+- [x] Visual verification of Evaluation Dashboard in live browser session
+
+## Doing (M9 — Final Polish & Submission Package)
+
+- [ ] End-to-end repository review and dead code cleanup
+- [ ] Buildathon submission package and walkthrough video summary
+- [ ] Final verification of all pages (`/`, `/cases`, `/cases/[id]`, `/policies`, `/evaluation`)
 
 ## Blocked
 
@@ -81,4 +90,4 @@ None.
 
 ## Next Sprint
 
-Final Polish & Buildathon Submission Package.
+Official submission to Razorpay Buildathon — Track 03: AI Revenue Recovery.

@@ -55,17 +55,17 @@
 
 ## M7 — Second Scenario
 
-- [ ] Checkout lifecycle
-- [ ] Abandonment detector
-- [ ] Recovery Payment Link
+- [x] Checkout lifecycle
+- [x] Abandonment detector
+- [x] Recovery Payment Link
 
 ## M8 — Evaluation
 
-- [ ] Synthetic dataset
-- [ ] Locked test set
-- [ ] Evaluation pipeline
-- [ ] Metrics
-- [ ] Evaluation dashboard
+- [x] Synthetic dataset (5,000 events)
+- [x] Locked test set (1,000 events)
+- [x] Evaluation pipeline (Simulation Engine)
+- [x] Metrics (Precision, Recall, Net Revenue, Spam reduction)
+- [x] Evaluation dashboard (`/evaluation`)
 
 ## M9 — Polish
 

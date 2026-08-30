@@ -97,3 +97,49 @@ export interface Policy {
   created_at: string;
   updated_at: string;
 }
+
+export interface StrategyMetrics {
+  attempts_count: number;
+  successful_recoveries: number;
+  wasted_attempts_fp: number;
+  correct_stops_tn: number;
+  missed_opportunities_fn: number;
+  precision: number;
+  recall: number;
+  f1_score: number;
+  accuracy: number;
+  recovery_rate: number;
+  gross_recovered_inr: number;
+  outreach_cost_inr: number;
+  net_recovered_inr: number;
+  guardrail_blocks?: number;
+  human_escalations?: number;
+}
+
+export interface EvaluationSummary {
+  dataset_type: string;
+  total_events: number;
+  total_revenue_at_risk_inr: number;
+  strategies: {
+    settl_ai_agent: StrategyMetrics;
+    naive_rule_based: StrategyMetrics;
+    no_action: StrategyMetrics;
+  };
+  lift: {
+    net_revenue_lift_inr: number;
+    net_revenue_lift_pct: number;
+    precision_improvement_pts: number;
+    wasted_outreach_reduced_count: number;
+    spam_reduction_rate: number;
+  };
+  confusion_matrix: {
+    settl: { tp: number; fp: number; tn: number; fn: number };
+    naive: { tp: number; fp: number; tn: number; fn: number };
+  };
+  category_breakdown: Record<string, {
+    total: number;
+    truly_recoverable: number;
+    settl_recovered: number;
+    naive_recovered: number;
+  }>;
+}
