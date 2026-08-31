@@ -8,16 +8,6 @@
         "type": "tabs",
         "children": [
           {
-            "id": "c73420208a305fe2",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
-            }
-          },
-          {
             "id": "c9eb391c84815027",
             "type": "leaf",
             "state": {
@@ -31,8 +21,7 @@
               "title": "Settl Dashboard"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -198,9 +187,14 @@
       "bases:Create new base": false
     }
   },
-  "active": "c9eb391c84815027",
+  "active": "bc7711bdaac5c6c2",
   "lastOpenFiles": [
+    "Untitled",
+    "Untitled.canvas",
     "00 Dashboard/Settl Dashboard.md",
+    "Untitled 2.md",
+    "Untitled.md",
+    "Untitled 1.md",
     "07 Decisions/ADR-002-Supabase-Queues.md",
     "10 Demo/Final Checklist.md",
     "10 Demo/Demo Flow.md",
@@ -222,10 +216,6 @@
     "03 Development/Roadmap.md",
     "03 Development/Definition of Done.md",
     "03 Development/Current Sprint.md",
-    "03 Development/Backlog.md",
-    "03 Development/AI Coding Agent Checklist.md",
-    "02 Architecture/TDD.md",
-    "02 Architecture/System Architecture.md",
     "10 Demo",
     "09 Daily Logs",
     "08 Research",

@@ -85,10 +85,12 @@ def get_recovery_case(
     customer_resp = None
     event_type = None
     failure_reason = None
+    source = None
     
     if c.revenue_event:
         event_type = c.revenue_event.event_type
         failure_reason = c.revenue_event.failure_reason
+        source = c.revenue_event.source
         if c.revenue_event.customer:
             cust = c.revenue_event.customer
             customer_resp = CustomerResponse(
@@ -156,6 +158,7 @@ def get_recovery_case(
         customer=customer_resp,
         event_type=event_type,
         failure_reason=failure_reason,
+        source=source,
         actions=actions,
         audit_logs=audit_logs,
         latest_prediction=latest_pred_resp,

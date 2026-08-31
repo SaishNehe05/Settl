@@ -7,6 +7,8 @@ class DashboardSummary(BaseModel):
     revenue_at_risk_paise: int
     eligible_revenue_paise: int
     revenue_recovered_paise: int
+    simulation_revenue_recovered_paise: int
+    real_revenue_recovered_paise: int
     recovery_attempts_count: int
     recovery_rate: float
     guardrail_blocks_count: int

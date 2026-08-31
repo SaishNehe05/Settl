@@ -31,6 +31,10 @@ def get_dashboard_summary(
     eligible_revenue = sum(c.amount_at_risk_paise for c in eligible_cases)
     
     revenue_recovered = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED")
+    
+    simulation_revenue = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED" and c.revenue_event and c.revenue_event.source == "simulation")
+    real_revenue = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED" and c.revenue_event and c.revenue_event.source != "simulation")
+    
     recovery_attempts = sum(c.attempt_count for c in cases)
     
     recovery_rate = (revenue_recovered / eligible_revenue) if eligible_revenue > 0 else 0.0
@@ -69,6 +73,7 @@ def get_dashboard_summary(
                 escalation_status=c.escalation_status,
                 customer_name=cust_name,
                 customer_email=cust_email,
+                source=c.revenue_event.source if c.revenue_event else None,
                 created_at=c.created_at,
                 updated_at=c.updated_at
             )
@@ -78,6 +83,8 @@ def get_dashboard_summary(
         revenue_at_risk_paise=revenue_at_risk,
         eligible_revenue_paise=eligible_revenue,
         revenue_recovered_paise=revenue_recovered,
+        simulation_revenue_recovered_paise=simulation_revenue,
+        real_revenue_recovered_paise=real_revenue,
         recovery_attempts_count=recovery_attempts,
         recovery_rate=round(recovery_rate, 4),
         guardrail_blocks_count=guardrail_blocks,

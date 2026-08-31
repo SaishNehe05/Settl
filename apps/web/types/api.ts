@@ -45,6 +45,7 @@ export interface RecoveryCaseItem {
   escalation_status?: string;
   customer_name?: string;
   customer_email?: string;
+  source?: string;
   created_at: string;
   updated_at: string;
 }
@@ -77,6 +78,8 @@ export interface DashboardSummary {
   revenue_at_risk_paise: number;
   eligible_revenue_paise: number;
   revenue_recovered_paise: number;
+  simulation_revenue_recovered_paise: number;
+  real_revenue_recovered_paise: number;
   recovery_attempts_count: number;
   recovery_rate: number;
   guardrail_blocks_count: number;

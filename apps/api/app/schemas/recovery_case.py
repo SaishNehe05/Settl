@@ -56,6 +56,7 @@ class RecoveryCaseListItem(BaseModel):
     escalation_status: Optional[str] = None
     customer_name: Optional[str] = None
     customer_email: Optional[str] = None
+    source: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -99,6 +100,7 @@ class RecoveryCaseDetail(BaseModel):
     customer: Optional[CustomerResponse] = None
     event_type: Optional[str] = None
     failure_reason: Optional[str] = None
+    source: Optional[str] = None
     actions: List[RecoveryActionResponse] = []
     audit_logs: List[AuditLogResponse] = []
     latest_prediction: Optional[ModelPredictionResponse] = None
