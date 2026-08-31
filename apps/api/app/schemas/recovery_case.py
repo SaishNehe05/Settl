@@ -23,6 +23,7 @@ class RecoveryActionResponse(BaseModel):
     policy_result: Optional[str] = None
     policy_reason: Optional[str] = None
     executed_at: datetime
+    response_payload: Optional[Dict[str, Any]] = None
 
     model_config = {"from_attributes": True}
 

@@ -159,7 +159,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
         if (!activeAction && caseDetail.status !== "WAITING_RESULT") return null;
 
         const plinkId = activeAction?.razorpay_entity_id || "plink_test";
-        const shortUrl = `https://rzp.io/i/${plinkId}`;
+        const shortUrl = activeAction?.response_payload?.short_url || `https://rzp.io/i/${plinkId}`;
 
         return (
           <div className="rounded-xl border border-sky-600/40 bg-sky-950/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

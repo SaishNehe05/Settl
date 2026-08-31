@@ -177,6 +177,32 @@ pytest -v
 
 ---
 
+## ☁️ 1-Click Cloud Deployment
+
+To host this project on a live URL for your GitHub repository and hackathon submission:
+
+### 1. Backend (FastAPI to Render)
+The repository includes a `render.yaml` file configured for 1-click deployment.
+1. Push your repository to GitHub.
+2. Go to [Render.com](https://render.com) and click **New > Blueprint**.
+3. Connect your GitHub repository.
+4. Render will automatically detect the `render.yaml` and deploy the FastAPI backend.
+5. Add your `.env` variables (like `RAZORPAY_KEY_ID`, `DATABASE_URL`) in the Render Dashboard.
+6. Note the deployed URL (e.g., `https://settl-api.onrender.com`).
+
+### 2. Frontend (Next.js to Vercel)
+Vercel has native support for monorepos.
+1. Go to [Vercel.com](https://vercel.com) and click **Add New Project**.
+2. Connect your GitHub repository.
+3. When configuring the project, set the **Root Directory** to `apps/web`.
+4. Add the following Environment Variable:
+   - `NEXT_PUBLIC_API_URL` = `https://settl-api.onrender.com` (Your Render Backend URL)
+5. Click **Deploy**.
+
+Once both are deployed, paste your Vercel URL into your GitHub repository's "Website" field!
+
+---
+
 ## 📂 Project Structure
 
 ```text

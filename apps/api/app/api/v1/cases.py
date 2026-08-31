@@ -110,7 +110,8 @@ def get_recovery_case(
             reference_id=a.reference_id,
             policy_result=a.policy_result,
             policy_reason=a.policy_reason,
-            executed_at=a.executed_at
+            executed_at=a.executed_at,
+            response_payload=a.response_payload
         )
         for a in c.recovery_actions
     ]

@@ -257,6 +257,7 @@ def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Di
         policy_result="ALLOW",
         policy_reason="Deterministic policy authorized payment link creation",
         executed_at=datetime.now(timezone.utc),
+        response_payload=link_response,
     )
     db.add(action)
 

@@ -17,6 +17,7 @@ export interface RecoveryAction {
   policy_result?: string;
   policy_reason?: string;
   executed_at: string;
+  response_payload?: Record<string, any>;
 }
 
 export interface AuditLog {

@@ -108,6 +108,42 @@ async def handle_razorpay_webhook(
             "case_id": case.id,
             "amount_recovered_paise": case.amount_recovered_paise,
         }
+        
+    elif event_type == "payment.failed":
+        # Handle real-time ingestion from Razorpay payment failures
+        from app.schemas.event import EventCreate
+        from app.schemas.customer import CustomerCreate
+        from app.services.event_service import ingest_revenue_event
+        
+        payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
+        amount = payment_entity.get("amount", 0)
+        email = payment_entity.get("email", "unknown@example.com")
+        contact = payment_entity.get("contact", "+910000000000")
+        error_desc = payment_entity.get("error_description") or payment_entity.get("error_reason") or "Payment Gateway Failure"
+        
+        event_data = EventCreate(
+            merchant_id="MER_DEMO_01",  # In a multi-tenant system, extract from Razorpay account/notes
+            event_type="payment.failed",
+            source="razorpay",
+            amount_paise=amount,
+            failure_reason=error_desc,
+            customer=CustomerCreate(
+                name=email.split("@")[0].replace(".", " ").title(),
+                email=email,
+                phone=contact
+            )
+        )
+        
+        event, case = ingest_revenue_event(db, event_data, merchant_id="MER_DEMO_01", auto_pipeline=True)
+        
+        wh_record.status = "PROCESSED"
+        db.commit()
+        return {
+            "status": "success",
+            "message": "Payment failure ingested and recovery pipeline started",
+            "case_id": case.id,
+            "event_id": event.id,
+        }
 
     db.commit()
     return result
