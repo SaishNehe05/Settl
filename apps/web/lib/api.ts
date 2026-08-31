@@ -7,6 +7,8 @@ const FALLBACK_SUMMARY: DashboardSummary = {
   revenue_at_risk_paise: 5419900,
   eligible_revenue_paise: 4349900,
   revenue_recovered_paise: 1250000,
+  simulation_revenue_recovered_paise: 1250000,
+  real_revenue_recovered_paise: 0,
   recovery_attempts_count: 3,
   recovery_rate: 0.2874,
   guardrail_blocks_count: 2,
