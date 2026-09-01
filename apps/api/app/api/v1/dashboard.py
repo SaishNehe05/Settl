@@ -97,3 +97,10 @@ def get_dashboard_summary(
         recovered_cases_count=recovered_cases,
         recent_cases=recent_items
     )
+
+@router.delete("/clear-all")
+def clear_all_cases(db: Session = Depends(get_db)):
+    # Hidden debug endpoint to wipe the DB for the hackathon
+    db.query(RecoveryCase).delete()
+    db.commit()
+    return {"status": "success", "message": "All cases deleted from live database"}
