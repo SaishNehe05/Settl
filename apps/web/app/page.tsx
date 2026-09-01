@@ -17,6 +17,8 @@ import { formatINR, formatPercent, formatDate } from "@/lib/utils";
 import StatusBadge from "@/components/cases/status-badge";
 import SimulateModal from "@/components/dashboard/simulate-modal";
 
+import ModeToggle from "@/components/dashboard/mode-toggle";
+
 export const revalidate = 0; // Fresh data per request
 
 interface DashboardPageProps {
@@ -98,26 +100,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900/50 p-1">
-            <Link
-              href="/"
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${!mode ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-            >
-              All Data
-            </Link>
-            <Link
-              href="/?mode=simulation"
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mode === 'simulation' ? 'bg-slate-800 text-purple-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-            >
-              Simulation
-            </Link>
-            <Link
-              href="/?mode=api"
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mode === 'api' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-            >
-              Razorpay
-            </Link>
-          </div>
+          <ModeToggle />
           <SimulateModal />
           <Link
             href="/cases"
