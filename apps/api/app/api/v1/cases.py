@@ -61,6 +61,7 @@ def list_recovery_cases(
                 escalation_status=c.escalation_status,
                 customer_name=cust_name,
                 customer_email=cust_email,
+                source=c.revenue_event.source if c.revenue_event else None,
                 created_at=c.created_at,
                 updated_at=c.updated_at
             )
