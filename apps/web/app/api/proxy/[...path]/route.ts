@@ -52,9 +52,9 @@ async function proxyHandler(req: NextRequest, props: { params: Promise<{ path: s
   }
 }
 
-export const GET = proxyHandler;
-export const POST = proxyHandler;
-export const PATCH = proxyHandler;
-export const PUT = proxyHandler;
-export const DELETE = proxyHandler;
+export async function GET(req: NextRequest, props: { params: Promise<{ path: string[] }> }) { return proxyHandler(req, props); }
+export async function POST(req: NextRequest, props: { params: Promise<{ path: string[] }> }) { return proxyHandler(req, props); }
+export async function PATCH(req: NextRequest, props: { params: Promise<{ path: string[] }> }) { return proxyHandler(req, props); }
+export async function PUT(req: NextRequest, props: { params: Promise<{ path: string[] }> }) { return proxyHandler(req, props); }
+export async function DELETE(req: NextRequest, props: { params: Promise<{ path: string[] }> }) { return proxyHandler(req, props); }
 

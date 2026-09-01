@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, AlertTriangle, ShieldX, CheckCircle, X, RefreshCw, User, Mail, Phone, IndianRupee } from "lucide-react";
-import { API_BASE } from "@/lib/api";
+import { API_BASE } from "@/lib/config";
 
 const SCENARIOS = [
   {

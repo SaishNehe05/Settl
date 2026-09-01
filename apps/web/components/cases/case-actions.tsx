@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Play, ShieldAlert, X, AlertCircle, Link as LinkIcon, CheckCircle2 } from "lucide-react";
-import { API_BASE } from "@/lib/api";
+import { API_BASE } from "@/lib/config";
 
 interface CaseActionsProps {
   caseId: string;

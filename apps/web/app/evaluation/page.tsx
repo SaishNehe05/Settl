@@ -15,7 +15,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { EvaluationSummary } from "@/types/api";
-import { API_BASE } from "@/lib/api";
+import { API_BASE } from "@/lib/config";
 
 function formatCurrency(inr: number): string {
   return new Intl.NumberFormat("en-IN", {

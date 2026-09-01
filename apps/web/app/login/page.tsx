@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { API_BASE } from "@/lib/api";
+import { API_BASE } from "@/lib/config";
 import { Zap, ArrowRight, UserPlus, LogIn } from "lucide-react";
 
 export default function LoginPage() {

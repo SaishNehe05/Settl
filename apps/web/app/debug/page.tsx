@@ -1,4 +1,4 @@
-import { API_BASE } from "@/lib/api";
+import { API_BASE } from "@/lib/config";
 
 export default async function DebugPage() {
   let fetchResult = "Not attempted";
