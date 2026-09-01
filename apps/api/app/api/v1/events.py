@@ -20,9 +20,11 @@ class IngestResponse(BaseModel):
 
 
 class SimulateRequest(BaseModel):
-    scenario: str = "clean_recovery"  # clean_recovery, high_value, max_attempts, opt_out, low_prob
+    scenario: str = "payment_degradation"
     amount_paise: Optional[int] = None
     customer_name: Optional[str] = None
+    customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
 
 
 @router.post("", response_model=IngestResponse, status_code=status.HTTP_201_CREATED)
@@ -169,12 +171,14 @@ def simulate_event(
     sc = scenarios.get(req.scenario, scenarios["payment_degradation"])
     amount = req.amount_paise or sc["amount"]
     name = req.customer_name or sc["name"]
+    email = req.customer_email or sc["email"]
+    phone = req.customer_phone or "+919876543210"
 
     data = EventCreate(
         event_id=generate_uuid("EVT_SIM"),
         customer_name=name,
-        customer_email=sc["email"],
-        customer_phone="+919876543210",
+        customer_email=email,
+        customer_phone=phone,
         event_type=sc["type"],
         amount_paise=amount,
         failure_reason=sc["reason"],
