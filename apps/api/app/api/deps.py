@@ -39,10 +39,10 @@ def get_current_merchant(
             raise credentials_exception
         return merchant
 
-    # Development fallback to first merchant
-    if settings.ENVIRONMENT == "development":
-        merchant = db.query(Merchant).first()
-        if merchant:
-            return merchant
+    # Hackathon Demo fallback to first merchant
+    # (Since there is no frontend auth system, we always allow this for the demo)
+    merchant = db.query(Merchant).first()
+    if merchant:
+        return merchant
 
     raise credentials_exception
