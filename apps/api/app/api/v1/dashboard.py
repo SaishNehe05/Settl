@@ -40,21 +40,16 @@ def get_dashboard_summary(
     
     revenue_recovered = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED")
     
-    simulation_revenue = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED" and c.revenue_event and c.revenue_event.source == "simulation")
-    real_revenue = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED" and c.revenue_event and c.revenue_event.source != "simulation")
+    simulation_revenue = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED" and c.revenue_event and c.revenue_event.source == "synthetic")
+    real_revenue = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED" and c.revenue_event and c.revenue_event.source != "synthetic")
     
     recovery_attempts = sum(c.attempt_count for c in cases)
     
     recovery_rate = (revenue_recovered / eligible_revenue) if eligible_revenue > 0 else 0.0
     
-    # Recent cases
-    recent_query = (
-        db.query(RecoveryCase)
-        .filter(RecoveryCase.merchant_id == current_merchant.id)
-        .order_by(RecoveryCase.created_at.desc())
-        .limit(10)
-        .all()
-    )
+    # Sort and slice the already filtered cases for the recent cases list
+    sorted_cases = sorted(cases, key=lambda x: x.created_at, reverse=True)
+    recent_query = sorted_cases[:10]
     
     recent_items = []
     for c in recent_query:
