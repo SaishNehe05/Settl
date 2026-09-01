@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { ShieldCheck, Zap, Activity } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function Navbar() {
+  const { merchant } = useAuth();
   return (
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-800 bg-slate-950/80 px-6 backdrop-blur-md">
       <div className="flex items-center gap-3">
@@ -39,11 +41,11 @@ export default function Navbar() {
         {/* Merchant Indicator */}
         <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-semibold text-white">
-            AR
+            {merchant?.name?.substring(0, 2).toUpperCase() || "SM"}
           </div>
           <div className="hidden md:block text-left text-xs leading-tight">
-            <div className="font-medium text-slate-200">Acme Retail India</div>
-            <div className="text-[11px] text-slate-400">demo@settl.ai</div>
+            <div className="font-medium text-slate-200 truncate max-w-[120px]">{merchant?.name || "Settl Merchant"}</div>
+            <div className="text-[11px] text-slate-400 truncate max-w-[120px]">{merchant?.email || "merchant@settl.ai"}</div>
           </div>
         </div>
       </div>

@@ -16,6 +16,7 @@ import { fetchDashboardSummary } from "@/lib/api";
 import { formatINR, formatPercent, formatDate } from "@/lib/utils";
 import StatusBadge from "@/components/cases/status-badge";
 import SimulateModal from "@/components/dashboard/simulate-modal";
+import { MerchantName } from "@/components/auth/merchant-name";
 
 import ModeToggle from "@/components/dashboard/mode-toggle";
 
@@ -96,7 +97,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             Real-time autonomous revenue recovery overview for{" "}
-            <span className="text-slate-200 font-medium">Acme Retail India</span>.
+            <span className="text-slate-200 font-medium"><MerchantName /></span>.
           </p>
         </div>
         <div className="flex items-center gap-3">
