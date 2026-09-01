@@ -87,33 +87,35 @@ const FALLBACK_SUMMARY: DashboardSummary = {
 };
 
 export async function fetchDashboardSummary(mode?: string): Promise<DashboardSummary> {
-  try {
-    const url = mode 
-      ? `${API_BASE}/api/v1/dashboard/summary?mode=${encodeURIComponent(mode)}`
-      : `${API_BASE}/api/v1/dashboard/summary`;
-    const res = await fetch(url, {
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error("Failed to fetch dashboard summary");
-    return await res.json();
-  } catch (err) {
-    console.warn("Backend unavailable, using initial cached summary data:", err);
-    return FALLBACK_SUMMARY;
+  const url = mode 
+    ? `${API_BASE}/api/v1/dashboard/summary?mode=${encodeURIComponent(mode)}`
+    : `${API_BASE}/api/v1/dashboard/summary`;
+    
+  console.log("Fetching dashboard from URL:", url);
+  
+  const res = await fetch(url, {
+    cache: "no-store",
+  });
+  
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to fetch dashboard summary. Status: ${res.status}. URL: ${url}. Response: ${text.substring(0, 100)}`);
   }
+  
+  return await res.json();
 }
 
 export async function fetchRecoveryCases(status?: string): Promise<RecoveryCaseItem[]> {
-  try {
-    const url = status 
-      ? `${API_BASE}/api/v1/recovery-cases?status=${encodeURIComponent(status)}`
-      : `${API_BASE}/api/v1/recovery-cases`;
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error("Failed to fetch recovery cases");
-    return await res.json();
-  } catch (err) {
-    console.warn("Backend unavailable, using initial cached case items:", err);
-    return FALLBACK_SUMMARY.recent_cases;
+  const url = status 
+    ? `${API_BASE}/api/v1/recovery-cases?status=${encodeURIComponent(status)}` 
+    : `${API_BASE}/api/v1/recovery-cases`;
+    
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to fetch recovery cases. Status: ${res.status}. URL: ${url}. Response: ${text.substring(0, 100)}`);
   }
+  return await res.json();
 }
 
 export async function fetchCaseDetail(id: string): Promise<RecoveryCaseDetail | null> {
