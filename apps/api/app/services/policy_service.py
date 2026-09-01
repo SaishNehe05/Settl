@@ -72,7 +72,46 @@ def evaluate_policy_guardrails(
                 details=f"Cooldown window active. {remaining} minutes remaining before next automated action."
             )
 
-    # 6. Action-specific directives
+    # 6. Scenario-specific stopping rules (based on root_cause category)
+    root_cause = (case.root_cause or "").upper()
+    
+    # Subscription: Max 3 retry attempts before churn acceptance
+    if "SUBSCRIPTION" in root_cause and case.attempt_count >= 3:
+        return PolicyResult(
+            status="BLOCKED",
+            reason="SUBSCRIPTION_MAX_RETRIES",
+            details=f"Subscription recovery reached max retries ({case.attempt_count}/3). Accepting churn to preserve customer relationship."
+        )
+    
+    # B2B: Escalate if >₹1,00,000
+    if "B2B" in root_cause and case.amount_at_risk_paise > 10000000:
+        return PolicyResult(
+            status="ESCALATED",
+            reason="B2B_HIGH_VALUE_RECEIVABLE",
+            details=f"B2B receivable ₹{case.amount_at_risk_paise/100:,.2f} exceeds ₹1,00,000. Routing to senior collections."
+        )
+    
+    # Mandate: Max 2 retries per NPCI guidelines
+    if "MANDATE" in root_cause and case.attempt_count >= 2:
+        return PolicyResult(
+            status="BLOCKED",
+            reason="MANDATE_MAX_RETRIES",
+            details=f"eMandate retry limit reached ({case.attempt_count}/2 per NPCI guidelines). Cannot re-present."
+        )
+    
+    # Voice/IVR: Only between 9 AM – 7 PM IST
+    if "REGIONAL" in root_cause or "VOICE" in root_cause or "IVR" in root_cause:
+        from datetime import timedelta
+        ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+        hour = ist_now.hour
+        if hour < 9 or hour >= 19:
+            return PolicyResult(
+                status="WAIT",
+                reason="IVR_OUTSIDE_BUSINESS_HOURS",
+                details=f"IVR calls restricted to 9 AM – 7 PM IST. Current IST hour: {hour}. Scheduling for next window."
+            )
+
+    # 7. Action-specific directives
     if proposed_action == "STOP":
         return PolicyResult(
             status="BLOCKED",

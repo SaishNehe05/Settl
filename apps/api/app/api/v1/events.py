@@ -75,19 +75,78 @@ def simulate_event(
     Convenience endpoint for judges and testers to inject simulated events across different scenarios.
     """
     scenarios = {
+        "payment_degradation": {
+            "amount": 849900,
+            "reason": "temporary_bank_failure",
+            "name": "Arjun Mehta",
+            "email": "arjun.mehta@example.com",
+            "type": "PAYMENT_FAILED",
+            "scenario_tag": "payment_degradation",
+        },
+        "checkout_dropoff": {
+            "amount": 320000,
+            "reason": "checkout_session_abandoned",
+            "name": "Diya Mukherjee",
+            "email": "diya.mukherjee@example.com",
+            "type": "CHECKOUT_ABANDONED",
+            "scenario_tag": "checkout_dropoff",
+        },
+        "subscription_failure": {
+            "amount": 99900,
+            "reason": "subscription_renewal_declined",
+            "name": "Vivaan Patel",
+            "email": "vivaan.patel@example.com",
+            "type": "SUBSCRIPTION_HALTED",
+            "scenario_tag": "subscription_failure",
+        },
+        "b2b_receivables": {
+            "amount": 7500000,
+            "reason": "invoice_overdue_net30",
+            "name": "Kapoor Industries Pvt Ltd",
+            "email": "accounts@kapoorindustries.in",
+            "type": "INVOICE_OVERDUE",
+            "scenario_tag": "b2b_receivables",
+        },
+        "mandate_retry": {
+            "amount": 150000,
+            "reason": "emandate_nach_bounce",
+            "name": "Saanvi Rao",
+            "email": "saanvi.rao@example.com",
+            "type": "MANDATE_BOUNCED",
+            "scenario_tag": "mandate_retry",
+        },
+        "hinglish_voice": {
+            "amount": 249900,
+            "reason": "regional_hinglish_voice_recovery",
+            "name": "Ramesh Kumar",
+            "email": "ramesh.kumar@example.com",
+            "type": "PAYMENT_FAILED",
+            "scenario_tag": "hinglish_voice",
+        },
+        "promise_to_pay": {
+            "amount": 450000,
+            "reason": "promise_acknowledged_will_pay",
+            "name": "Aadhya Menon",
+            "email": "aadhya.menon@example.com",
+            "type": "PAYMENT_FAILED",
+            "scenario_tag": "promise_to_pay",
+        },
+        # Legacy aliases for backward compatibility
         "clean_recovery": {
             "amount": 849900,
             "reason": "temporary_bank_failure",
             "name": "Arjun Mehta",
             "email": "arjun.mehta@example.com",
             "type": "PAYMENT_FAILED",
+            "scenario_tag": "payment_degradation",
         },
         "high_value": {
-            "amount": 4500000,  # ₹45,000 > ₹10,000 threshold
+            "amount": 4500000,
             "reason": "gateway_timeout",
             "name": "Sunita Rao",
             "email": "sunita.rao@example.com",
             "type": "PAYMENT_FAILED",
+            "scenario_tag": "payment_degradation",
         },
         "opt_out": {
             "amount": 650000,
@@ -95,6 +154,7 @@ def simulate_event(
             "name": "Priya Nair",
             "email": "priya.nair@example.com",
             "type": "CHECKOUT_ABANDONED",
+            "scenario_tag": "checkout_dropoff",
         },
         "low_prob": {
             "amount": 320000,
@@ -102,10 +162,11 @@ def simulate_event(
             "name": "Karan Kapoor",
             "email": "karan.kapoor@example.com",
             "type": "PAYMENT_FAILED",
+            "scenario_tag": "payment_degradation",
         },
     }
 
-    sc = scenarios.get(req.scenario, scenarios["clean_recovery"])
+    sc = scenarios.get(req.scenario, scenarios["payment_degradation"])
     amount = req.amount_paise or sc["amount"]
     name = req.customer_name or sc["name"]
 
@@ -118,7 +179,8 @@ def simulate_event(
         amount_paise=amount,
         failure_reason=sc["reason"],
         source="synthetic",
-        raw_payload={"scenario": req.scenario, "simulated": True},
+        scenario_type=sc.get("scenario_tag", req.scenario),
+        raw_payload={"scenario": req.scenario, "scenario_type": sc.get("scenario_tag", req.scenario), "simulated": True},
     )
 
     event, case = ingest_revenue_event(

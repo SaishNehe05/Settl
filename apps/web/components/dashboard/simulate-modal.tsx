@@ -2,36 +2,57 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Zap, AlertTriangle, ShieldX, CheckCircle, X } from "lucide-react";
+import { Zap, AlertTriangle, ShieldX, CheckCircle, X, RefreshCw } from "lucide-react";
 import { API_BASE } from "@/lib/api";
 
 const SCENARIOS = [
   {
-    id: "payment_failure_upi",
-    name: "UPI Payment Failure (₹8,499)",
-    desc: "Simulates transient switch timeout. Grounded root-cause diagnosis recommends WhatsApp payment link.",
+    id: "payment_degradation",
+    name: "Payment Degradation (₹8,499)",
+    desc: "UPI/card fails due to transient bank switch error. AI diagnoses root cause and issues automated Payment Link via WhatsApp.",
     icon: Zap,
     color: "text-sky-400",
   },
   {
-    id: "checkout_abandonment",
-    name: "Checkout Abandonment (₹3,200)",
-    desc: "Customer abandons active checkout session. Agent triggers recovery link with discount code.",
+    id: "checkout_dropoff",
+    name: "Checkout Drop-off (₹3,200)",
+    desc: "Customer abandons active cart mid-checkout. Agent triggers recovery link with 15-min optimal delay.",
     icon: AlertTriangle,
     color: "text-amber-400",
   },
   {
-    id: "high_value_escalation",
-    name: "High-Value Transaction (₹45,000)",
-    desc: "Exceeds ₹10,000 autonomous threshold. Policy engine routes case to Human Operator review queue.",
-    icon: ShieldX,
+    id: "subscription_failure",
+    name: "Failed Subscription (₹999)",
+    desc: "Recurring subscription auto-debit declined. Grace period reminder sent before churn. Max 3 retry policy.",
+    icon: RefreshCw,
     color: "text-purple-400",
   },
   {
-    id: "customer_opt_out",
-    name: "Opted-Out Customer (₹6,500)",
-    desc: "Customer flagged as opted out of communication. Policy engine immediately blocks contact.",
+    id: "b2b_receivables",
+    name: "B2B Receivables Chaser (₹75,000)",
+    desc: "Overdue B2B invoice exceeds ₹10K autonomous limit. Multi-step email chaser with escalation to senior collections.",
     icon: ShieldX,
+    color: "text-emerald-400",
+  },
+  {
+    id: "mandate_retry",
+    name: "Mandate Retry Sequencer (₹1,500)",
+    desc: "eMandate/NACH auto-debit bounced. Retry scheduled after 24h NPCI-compliant cooldown. Max 2 retries.",
+    icon: RefreshCw,
+    color: "text-indigo-400",
+  },
+  {
+    id: "hinglish_voice",
+    name: "Hinglish Voice Recovery (₹2,499)",
+    desc: "Regional customer flagged for IVR outreach. Hinglish voice script delivers 2.3x higher conversion. 9 AM–7 PM IST only.",
+    icon: Zap,
+    color: "text-teal-400",
+  },
+  {
+    id: "promise_to_pay",
+    name: "Promise-to-Pay Tracker (₹4,500)",
+    desc: "Customer acknowledged debt and committed to pay. Promise date tracked. Auto-escalate if commitment missed after 48h.",
+    icon: CheckCircle,
     color: "text-rose-400",
   },
 ];
@@ -39,7 +60,7 @@ const SCENARIOS = [
 export default function SimulateModal() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [scenario, setScenario] = useState("payment_failure_upi");
+  const [scenario, setScenario] = useState("payment_degradation");
   const [loading, setLoading] = useState(false);
 
   const handleSimulate = async () => {
@@ -95,7 +116,7 @@ export default function SimulateModal() {
               </button>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
               {SCENARIOS.map((sc) => {
                 const Icon = sc.icon;
                 const isSelected = scenario === sc.id;

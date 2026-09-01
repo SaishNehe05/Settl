@@ -14,7 +14,13 @@ class EventCreate(BaseModel):
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None
     
-    event_type: str = Field(..., description="PAYMENT_FAILED, CHECKOUT_ABANDONED, SUBSCRIPTION_HALTED")
+    # Scenario metadata
+    scenario_type: Optional[str] = None  # payment_degradation, checkout_dropoff, subscription_failure, etc.
+    subscription_id: Optional[str] = None
+    mandate_id: Optional[str] = None
+    invoice_id: Optional[str] = None
+    
+    event_type: str = Field(..., description="PAYMENT_FAILED, CHECKOUT_ABANDONED, SUBSCRIPTION_HALTED, MANDATE_BOUNCED, INVOICE_OVERDUE")
     amount_paise: int = Field(..., gt=0, description="Amount in paise (e.g. 849900 for ₹8,499)")
     currency: str = "INR"
     failure_reason: Optional[str] = None

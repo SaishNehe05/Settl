@@ -9,6 +9,11 @@ FailureCategory = Literal[
     "AUTHENTICATION",
     "PAYMENT_METHOD",
     "FRAUD_RISK",
+    "SUBSCRIPTION_CHURN",
+    "B2B_OVERDUE",
+    "MANDATE_BOUNCE",
+    "REGIONAL_VOICE",
+    "PROMISE_TO_PAY",
     "UNKNOWN",
 ]
 
@@ -16,12 +21,15 @@ AllowedRecoveryAction = Literal[
     "CREATE_PAYMENT_LINK",
     "SEND_PAYMENT_LINK",
     "SEND_REMINDER",
+    "RETRY_MANDATE",
+    "INITIATE_IVR",
+    "TRACK_PROMISE",
     "WAIT",
     "ESCALATE",
     "STOP",
 ]
 
-CommunicationChannel = Literal["WHATSAPP", "SMS", "EMAIL"]
+CommunicationChannel = Literal["WHATSAPP", "SMS", "EMAIL", "IVR"]
 
 
 class RootCauseAnalysisOutput(BaseModel):
