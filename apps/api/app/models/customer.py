@@ -21,4 +21,5 @@ class Customer(Base):
     # Relationships
     merchant = relationship("Merchant", back_populates="customers")
     orders = relationship("Order", back_populates="customer")
-    revenue_events = relationship("RevenueEvent", back_populates="customer")
+    revenue_events = relationship("RevenueEvent", back_populates="customer", cascade="all, delete-orphan")
+    promises = relationship("Promise", back_populates="customer", cascade="all, delete-orphan")

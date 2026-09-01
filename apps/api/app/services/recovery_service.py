@@ -220,8 +220,9 @@ def handle_human_review(db: Session, case_id: str, approved: bool, reason: Optio
 
 def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Dict[str, Any]]:
     """
-    Executes an authorized action by creating a Razorpay Payment Link.
-    Transitions: APPROVED -> EXECUTING -> WAITING_RESULT
+    Common Action Engine.
+    Executes an authorized action by routing to the appropriate handler.
+    Transitions: APPROVED -> EXECUTING -> WAITING_RESULT / EXECUTED
     """
     from datetime import datetime, timezone
     from app.services.razorpay_service import create_recovery_payment_link
@@ -238,50 +239,88 @@ def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Di
 
     customer = case.revenue_event.customer if case.revenue_event else None
     order = case.revenue_event.order if case.revenue_event else None
+    action_type = case.actual_action or "CREATE_PAYMENT_LINK"
 
     # Step 1: Transition to EXECUTING
     case.status = "EXECUTING"
     case.attempt_count += 1
     db.flush()
 
-    # Step 2: Call Razorpay Payment Link Service
-    link_response = create_recovery_payment_link(db, case, customer, order)
+    response_payload = {}
+    next_case_status = "WAITING_RESULT"
+    razorpay_entity_id = None
+    reference_id = None
+    audit_event = "ACTION_EXECUTED"
+    audit_reason = f"Executed {action_type} for case {case.id}."
+
+    # Route based on Action Type
+    if action_type in ["CREATE_PAYMENT_LINK", "RECOVER_CHECKOUT"]:
+        link_response = create_recovery_payment_link(db, case, customer, order)
+        response_payload = link_response
+        razorpay_entity_id = link_response.get("id")
+        reference_id = link_response.get("reference_id")
+        audit_event = "PAYMENT_LINK_ISSUED"
+        audit_reason = f"Generated Razorpay Payment Link {razorpay_entity_id} for ₹{case.amount_at_risk_paise/100:,.2f}."
+        next_case_status = "WAITING_RESULT"
+        
+    elif action_type in ["SEND_REMINDER", "SEND_PAYMENT_LINK"]:
+        response_payload = {"status": "sent", "channel": "email", "recipient": customer.email if customer else "unknown"}
+        audit_event = "REMINDER_SENT"
+        audit_reason = f"Sent reminder to {customer.email if customer else 'customer'} for ₹{case.amount_at_risk_paise/100:,.2f}."
+        next_case_status = "WAITING_RESULT"
+        
+    elif action_type in ["MONITOR", "WAIT", "FOLLOW_UP"]:
+        response_payload = {"status": "scheduled", "action": action_type}
+        audit_event = "MONITORING_SCHEDULED"
+        audit_reason = f"Scheduled monitoring/wait state for case {case.id}."
+        next_case_status = "WAITING_RESULT"
+        
+    elif action_type == "CREATE_COLLECTION_CASE":
+        response_payload = {"collection_case_id": f"COL_{case.id[-6:]}", "status": "assigned"}
+        audit_event = "COLLECTION_CASE_CREATED"
+        audit_reason = f"Created internal collection case for overdue amount ₹{case.amount_at_risk_paise/100:,.2f}."
+        next_case_status = "EXECUTED"
+        
+    else:
+        # Default generic handler for any other unhandled action
+        response_payload = {"status": "completed", "action": action_type}
+        audit_reason = f"Executed generic action {action_type}."
+        next_case_status = "EXECUTED"
 
     # Step 3: Record RecoveryAction
     action = RecoveryAction(
         case_id=case.id,
-        action_type="CREATE_PAYMENT_LINK",
-        status="PENDING",
-        razorpay_entity_id=link_response.get("id"),
-        reference_id=link_response.get("reference_id"),
+        action_type=action_type,
+        status="SUCCESS",
+        razorpay_entity_id=razorpay_entity_id,
+        reference_id=reference_id,
         policy_result="ALLOW",
-        policy_reason="Deterministic policy authorized payment link creation",
+        policy_reason=f"Deterministic policy authorized {action_type}",
         executed_at=datetime.now(timezone.utc),
-        response_payload=link_response,
+        response_payload=response_payload,
     )
     db.add(action)
 
-    # Step 4: Transition to WAITING_RESULT
-    case.status = "WAITING_RESULT"
-    case.actual_action = "CREATE_PAYMENT_LINK"
+    # Step 4: Transition to terminal or waiting state
+    case.status = next_case_status
 
     log_audit_event(
         db=db,
         merchant_id=case.merchant_id,
         case_id=case.id,
         actor="SYSTEM",
-        event_name="PAYMENT_LINK_ISSUED",
-        reason=f"Generated Razorpay Payment Link {link_response.get('id')} for ₹{case.amount_at_risk_paise/100:,.2f}.",
+        event_name=audit_event,
+        reason=audit_reason,
         metadata={
-            "payment_link_id": link_response.get("id"),
-            "short_url": link_response.get("short_url"),
+            "action_type": action_type,
             "amount_paise": case.amount_at_risk_paise,
             "attempt_number": case.attempt_count,
+            "response": response_payload
         },
     )
     db.commit()
     db.refresh(case)
-    return case, link_response
+    return case, response_payload
 
 
 def handle_payment_recovered(

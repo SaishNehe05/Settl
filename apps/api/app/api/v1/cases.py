@@ -244,3 +244,50 @@ def execute_case(
 
     execute_approved_action(db, case_id)
     return get_recovery_case(case_id, current_merchant, db)
+
+
+class PromiseRequest(BaseModel):
+    amount_paise: int
+    promise_date: str
+
+@router.post("/{case_id}/promise", response_model=RecoveryCaseDetail)
+def record_promise(
+    case_id: str,
+    req: PromiseRequest,
+    current_merchant: Merchant = Depends(get_current_merchant),
+    db: Session = Depends(get_db)
+):
+    from datetime import datetime, timezone
+    from dateutil.parser import parse
+    from app.models.promise import Promise
+    from app.services.recovery_service import execute_approved_action
+    from app.services.audit_service import log_audit_event
+    
+    c = db.query(RecoveryCase).filter(
+        RecoveryCase.id == case_id,
+        RecoveryCase.merchant_id == current_merchant.id
+    ).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Case not found")
+        
+    if not c.revenue_event or not c.revenue_event.customer_id:
+        raise HTTPException(status_code=400, detail="Case has no associated customer")
+
+    promise_dt = parse(req.promise_date)
+    
+    promise = Promise(
+        case_id=c.id,
+        customer_id=c.revenue_event.customer_id,
+        promised_amount_paise=req.amount_paise,
+        promise_date=promise_dt,
+        status="PROMISED"
+    )
+    db.add(promise)
+    
+    # We execute the action via the common action engine
+    c.actual_action = "RECORD_PROMISE"
+    db.commit()
+    
+    execute_approved_action(db, case_id)
+    
+    return get_recovery_case(case_id, current_merchant, db)

@@ -11,6 +11,7 @@ from app.models.audit_log import AuditLog
 from app.models.model_prediction import ModelPrediction
 from app.models.notification import Notification
 from app.models.webhook_event import WebhookEvent
+from app.models.promise import Promise
 
 __all__ = [
     "Base",
@@ -26,4 +27,5 @@ __all__ = [
     "ModelPrediction",
     "Notification",
     "WebhookEvent",
+    "Promise",
 ]

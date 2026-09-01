@@ -80,7 +80,12 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             </span>
           </div>
           <div className="flex items-center gap-5">
-            <CaseActions caseId={caseDetail.id} status={caseDetail.status} />
+            <CaseActions 
+              caseId={caseDetail.id} 
+              status={caseDetail.status} 
+              eventType={caseDetail.event_type}
+              actualAction={caseDetail.actual_action}
+            />
             <div className="text-right">
               <div className="text-xs text-slate-400">Amount at Risk</div>
               <div className="text-2xl font-bold text-white tracking-tight">

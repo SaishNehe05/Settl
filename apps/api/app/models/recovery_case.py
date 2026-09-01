@@ -32,6 +32,7 @@ class RecoveryCase(Base):
     # Relationships
     merchant = relationship("Merchant", back_populates="recovery_cases")
     revenue_event = relationship("RevenueEvent", back_populates="recovery_case")
-    recovery_actions = relationship("RecoveryAction", back_populates="recovery_case", cascade="all, delete-orphan")
-    audit_logs = relationship("AuditLog", back_populates="recovery_case", cascade="all, delete-orphan")
+    recovery_actions = relationship("RecoveryAction", back_populates="recovery_case", cascade="all, delete-orphan", order_by="RecoveryAction.executed_at.desc()")
+    audit_logs = relationship("AuditLog", back_populates="recovery_case", cascade="all, delete-orphan", order_by="AuditLog.created_at")
     model_predictions = relationship("ModelPrediction", back_populates="recovery_case", cascade="all, delete-orphan")
+    promises = relationship("Promise", back_populates="recovery_case", cascade="all, delete-orphan")

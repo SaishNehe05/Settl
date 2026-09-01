@@ -72,10 +72,10 @@ def test_primary_8499_recovery_full_loop(client, db):
     assert "https://rzp.io/i/" in plink_resp["short_url"]
     plink_id = plink_resp["id"]
 
-    # Verify action recorded as PENDING
+    # Verify action recorded as SUCCESS
     action = db.query(RecoveryAction).filter(RecoveryAction.case_id == case.id).first()
     assert action is not None
-    assert action.status == "PENDING"
+    assert action.status == "SUCCESS"
     assert action.razorpay_entity_id == plink_id
 
     # 6. Incoming Razorpay Webhook (payment_link.paid)

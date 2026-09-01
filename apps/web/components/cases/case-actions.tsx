@@ -8,9 +8,11 @@ import { API_BASE } from "@/lib/config";
 interface CaseActionsProps {
   caseId: string;
   status: string;
+  eventType?: string;
+  actualAction?: string;
 }
 
-export default function CaseActions({ caseId, status }: CaseActionsProps) {
+export default function CaseActions({ caseId, status, eventType, actualAction }: CaseActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,15 +107,28 @@ export default function CaseActions({ caseId, status }: CaseActionsProps) {
           </button>
         )}
 
-        {/* Phase 4: Execute Razorpay Payment Link when APPROVED */}
+        {/* Phase 4: Execute Recovery Action when APPROVED */}
         {status === "APPROVED" && (
           <button
             onClick={handleExecute}
             disabled={loading}
             className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-sky-500 transition-colors shadow-lg shadow-sky-600/25 disabled:opacity-50"
           >
-            <LinkIcon className="h-3.5 w-3.5" />
-            {loading ? "Generating Link..." : "Create Razorpay Payment Link"}
+            {actualAction === "CREATE_PAYMENT_LINK" ? (
+              <><LinkIcon className="h-3.5 w-3.5" /> {loading ? "Generating..." : "Create Razorpay Payment Link"}</>
+            ) : actualAction === "RECOVER_CHECKOUT" ? (
+              <><LinkIcon className="h-3.5 w-3.5" /> {loading ? "Recovering..." : "Recover Checkout"}</>
+            ) : actualAction === "SEND_REMINDER" ? (
+              <><Play className="h-3.5 w-3.5" /> {loading ? "Sending..." : "Send Reminder"}</>
+            ) : actualAction === "MONITOR" || actualAction === "WAIT" ? (
+              <><Play className="h-3.5 w-3.5" /> {loading ? "Scheduling..." : "Schedule Monitoring"}</>
+            ) : actualAction === "RECORD_PROMISE" ? (
+              <><Check className="h-3.5 w-3.5" /> {loading ? "Recording..." : "Record Promise"}</>
+            ) : actualAction === "CREATE_COLLECTION_CASE" ? (
+              <><ShieldAlert className="h-3.5 w-3.5" /> {loading ? "Creating..." : "Create Collection Case"}</>
+            ) : (
+              <><Play className="h-3.5 w-3.5" /> {loading ? "Executing..." : "Execute Action"}</>
+            )}
           </button>
         )}
 

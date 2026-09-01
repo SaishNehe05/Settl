@@ -16,6 +16,9 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
+    settings.RAZORPAY_KEY_ID = "rzp_test_placeholder"
+    settings.RAZORPAY_KEY_SECRET = "placeholder_webhook_secret"
+    settings.RAZORPAY_WEBHOOK_SECRET = "placeholder_webhook_secret"
     Base.metadata.create_all(bind=engine)
     # Patch session in seed and run
     import app.scripts.seed_db as seed_module
