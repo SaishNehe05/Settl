@@ -84,6 +84,11 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
                       <Link href={`/cases/${c.id}`} className="hover:text-sky-400 hover:underline">
                         {c.id}
                       </Link>
+                      <div className="mt-1">
+                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold border ${c.source === 'simulation' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
+                          {c.source === 'simulation' ? 'SIMULATION' : 'RAZORPAY TEST'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-200">{c.customer_name || "Demo Customer"}</div>
