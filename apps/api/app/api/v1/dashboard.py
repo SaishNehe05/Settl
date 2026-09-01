@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
@@ -14,10 +15,17 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 @router.get("/summary", response_model=DashboardSummary)
 def get_dashboard_summary(
+    mode: Optional[str] = Query(None, description="Filter by mode: 'simulation' or 'api'"),
     current_merchant: Merchant = Depends(get_current_merchant),
     db: Session = Depends(get_db)
 ):
-    cases = db.query(RecoveryCase).filter(RecoveryCase.merchant_id == current_merchant.id).all()
+    cases_query = db.query(RecoveryCase).filter(RecoveryCase.merchant_id == current_merchant.id)
+    cases = cases_query.all()
+    
+    if mode == "simulation":
+        cases = [c for c in cases if c.revenue_event and c.revenue_event.source == "simulation"]
+    elif mode == "api":
+        cases = [c for c in cases if c.revenue_event and c.revenue_event.source != "simulation"]
     
     total_cases = len(cases)
     active_cases = len([c for c in cases if c.status not in ["RECOVERED", "STOPPED"]])

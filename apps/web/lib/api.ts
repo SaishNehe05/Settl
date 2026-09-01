@@ -71,9 +71,12 @@ const FALLBACK_SUMMARY: DashboardSummary = {
   ],
 };
 
-export async function fetchDashboardSummary(): Promise<DashboardSummary> {
+export async function fetchDashboardSummary(mode?: string): Promise<DashboardSummary> {
   try {
-    const res = await fetch(`${API_BASE}/api/v1/dashboard/summary`, {
+    const url = mode 
+      ? `${API_BASE}/api/v1/dashboard/summary?mode=${encodeURIComponent(mode)}`
+      : `${API_BASE}/api/v1/dashboard/summary`;
+    const res = await fetch(url, {
       cache: "no-store",
     });
     if (!res.ok) throw new Error("Failed to fetch dashboard summary");

@@ -19,8 +19,13 @@ import SimulateModal from "@/components/dashboard/simulate-modal";
 
 export const revalidate = 0; // Fresh data per request
 
-export default async function DashboardPage() {
-  const summary = await fetchDashboardSummary();
+interface DashboardPageProps {
+  searchParams: Promise<{ mode?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const { mode } = await searchParams;
+  const summary = await fetchDashboardSummary(mode);
 
   const kpis = [
     {
@@ -42,22 +47,13 @@ export default async function DashboardPage() {
       border: "border-sky-800/40",
     },
     {
-      label: "Simulation Recovered",
-      value: formatINR(summary.simulation_revenue_recovered_paise),
-      subtext: "Synthetic benchmark revenue",
-      icon: RefreshCw,
+      label: "Verified Recovered",
+      value: formatINR(summary.revenue_recovered_paise),
+      subtext: `${summary.recovered_cases_count} cases verified via webhook`,
+      icon: CheckCircle2,
       color: "text-emerald-400",
       bg: "bg-emerald-950/30",
       border: "border-emerald-800/40",
-    },
-    {
-      label: "Razorpay Recovered",
-      value: formatINR(summary.real_revenue_recovered_paise),
-      subtext: "Real webhook verified revenue",
-      icon: CheckCircle2,
-      color: "text-teal-400",
-      bg: "bg-teal-950/30",
-      border: "border-teal-800/40",
     },
     {
       label: "Recovery Rate",
@@ -102,6 +98,26 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900/50 p-1">
+            <Link
+              href="/"
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${!mode ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              All Data
+            </Link>
+            <Link
+              href="/?mode=simulation"
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mode === 'simulation' ? 'bg-slate-800 text-purple-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              Simulation
+            </Link>
+            <Link
+              href="/?mode=api"
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mode === 'api' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              Razorpay
+            </Link>
+          </div>
           <SimulateModal />
           <Link
             href="/cases"
