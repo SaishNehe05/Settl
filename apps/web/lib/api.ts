@@ -1,7 +1,10 @@
 import { DashboardSummary, RecoveryCaseItem, RecoveryCaseDetail, Policy } from "@/types/api";
 
 let apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-if (apiBase.includes("localhost")) {
+if (apiBase.includes("localhost") || apiBase.includes("127.0.0.1")) {
+  if (process.env.NODE_ENV === "production") {
+    console.warn("WARNING: API_BASE is pointing to localhost in PRODUCTION. This will fail on Vercel.");
+  }
   apiBase = apiBase.replace("localhost", "127.0.0.1");
 }
 export const API_BASE = apiBase;
