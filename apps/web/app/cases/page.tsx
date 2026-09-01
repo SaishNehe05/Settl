@@ -41,11 +41,10 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
               <Link
                 key={tab.value}
                 href={tab.value ? `/cases?status=${tab.value}` : "/cases"}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                  isSelected
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${isSelected
                     ? "bg-sky-500/10 text-sky-400 border border-sky-500/30"
                     : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
-                }`}
+                  }`}
               >
                 {tab.label}
               </Link>
@@ -85,8 +84,8 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
                         {c.id}
                       </Link>
                       <div className="mt-1">
-                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold border ${c.source === 'synthetic' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
-                          {c.source === 'synthetic' ? 'SIMULATION' : 'RAZORPAY TEST'}
+                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold border ${c.source === 'simulation' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
+                          {c.source === 'simulation' ? 'SIMULATION' : 'RAZORPAY TEST'}
                         </span>
                       </div>
                     </td>
