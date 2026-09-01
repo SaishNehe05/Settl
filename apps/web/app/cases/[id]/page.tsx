@@ -75,8 +75,8 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             <span className="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-300 font-medium">
               {caseDetail.priority} Priority
             </span>
-            <span className={`rounded px-2 py-0.5 text-[10px] font-mono font-bold border ${caseDetail.source === 'simulation' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
-              Source: {caseDetail.source === 'simulation' ? 'SIMULATION' : 'RAZORPAY TEST MODE'}
+            <span className={`rounded-md px-2 py-1 text-[10px] font-mono font-bold tracking-wider border ${caseDetail.source === 'synthetic' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
+              Source: {caseDetail.source === 'synthetic' ? 'SYNTHETIC' : 'RAZORPAY TEST MODE'}
             </span>
           </div>
           <div className="flex items-center gap-5">

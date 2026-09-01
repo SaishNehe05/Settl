@@ -85,8 +85,8 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
                         {c.id}
                       </Link>
                       <div className="mt-1">
-                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold border ${c.source === 'simulation' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
-                          {c.source === 'simulation' ? 'SIMULATION' : 'RAZORPAY TEST'}
+                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold border ${c.source === 'synthetic' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
+                          {c.source === 'synthetic' ? 'SIMULATION' : 'RAZORPAY TEST'}
                         </span>
                       </div>
                     </td>

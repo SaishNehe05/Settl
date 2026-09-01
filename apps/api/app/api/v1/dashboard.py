@@ -23,9 +23,9 @@ def get_dashboard_summary(
     cases = cases_query.all()
     
     if mode == "simulation":
-        cases = [c for c in cases if c.revenue_event and c.revenue_event.source == "simulation"]
+        cases = [c for c in cases if c.revenue_event and c.revenue_event.source == "synthetic"]
     elif mode == "api":
-        cases = [c for c in cases if c.revenue_event and c.revenue_event.source != "simulation"]
+        cases = [c for c in cases if c.revenue_event and c.revenue_event.source != "synthetic"]
     
     total_cases = len(cases)
     active_cases = len([c for c in cases if c.status not in ["RECOVERED", "STOPPED"]])
