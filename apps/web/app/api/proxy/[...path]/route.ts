@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest, props: { params: Promise<{ path: string[] }> }) {
+async function proxyHandler(req: NextRequest, props: { params: Promise<{ path: string[] }> }) {
   const params = await props.params;
-  // Reconstruct the path, e.g., ["api", "v1", "events"] -> "api/v1/events"
   const targetPath = params.path.join("/");
   
   let backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -10,20 +9,35 @@ export async function POST(req: NextRequest, props: { params: Promise<{ path: st
     backendUrl = backendUrl.replace("localhost", "127.0.0.1");
   }
 
-  const url = `${backendUrl}/${targetPath}`;
+  // Preserve query string
+  const searchParams = req.nextUrl.searchParams.toString();
+  const url = searchParams
+    ? `${backendUrl}/${targetPath}?${searchParams}`
+    : `${backendUrl}/${targetPath}`;
 
   try {
-    const body = await req.text();
-    
     const headers = new Headers();
-    headers.set("Content-Type", req.headers.get("Content-Type") || "application/json");
+    const contentType = req.headers.get("Content-Type");
+    if (contentType) headers.set("Content-Type", contentType);
+    
+    // Forward auth header
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      headers.set("Authorization", authHeader);
+    }
 
-    const response = await fetch(url, {
-      method: "POST",
+    const fetchOptions: RequestInit = {
+      method: req.method,
       headers,
-      body: body || undefined,
-    });
+    };
 
+    // Only include body for methods that support it
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      const body = await req.text();
+      if (body) fetchOptions.body = body;
+    }
+
+    const response = await fetch(url, fetchOptions);
     const data = await response.text();
 
     return new NextResponse(data, {
@@ -37,3 +51,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ path: st
     return NextResponse.json({ error: "Failed to proxy request" }, { status: 500 });
   }
 }
+
+export const GET = proxyHandler;
+export const POST = proxyHandler;
+export const PATCH = proxyHandler;
+export const PUT = proxyHandler;
+export const DELETE = proxyHandler;
+

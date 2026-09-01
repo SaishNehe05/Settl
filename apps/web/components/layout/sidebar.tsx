@@ -8,11 +8,14 @@ import {
   ShieldAlert, 
   BarChart3, 
   FileCode2,
-  HelpCircle 
+  HelpCircle,
+  LogOut 
 } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { logout, merchant } = useAuth();
 
   const links = [
     { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -62,6 +65,24 @@ export default function Sidebar() {
       </div>
 
       <div className="space-y-2 pt-4 border-t border-slate-800/60">
+        {/* Merchant Info & Logout */}
+        <div className="mb-4">
+          <div className="mb-3 px-2">
+            <p className="text-xs font-medium text-slate-300 truncate">
+              {merchant?.name || "Acme Retail India"}
+            </p>
+            <p className="text-[10px] text-slate-500 truncate">
+              {merchant?.email || "admin@acme.in"}
+            </p>
+          </div>
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </button>
+        </div>
         <a
           href="http://localhost:8000/docs"
           target="_blank"
