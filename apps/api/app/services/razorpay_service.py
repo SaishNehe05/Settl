@@ -97,7 +97,7 @@ def create_recovery_payment_link(
             "email": customer.email,
             "contact": customer.phone or "+919876543210",
         },
-        "notify": {"sms": False, "email": False},  # Settl controls outreach channel
+        "notify": {"sms": True, "email": True},  # Razorpay sends the notification directly
         "reminder_enable": True,
         "notes": {
             "case_id": case.id,

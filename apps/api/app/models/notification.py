@@ -12,11 +12,16 @@ class Notification(Base):
     case_id = Column(String, ForeignKey("recovery_cases.id", ondelete="CASCADE"), nullable=True, index=True)
     
     channel = Column(String, nullable=False)  # SMS, EMAIL, WHATSAPP, WEBHOOK
+    provider = Column(String, nullable=True)  # razorpay, twilio, sendgrid
+    message_type = Column(String, nullable=True)  # PAYMENT_LINK, REMINDER
     recipient = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    status = Column(String, default="SENT", nullable=False)  # SENT, DELIVERED, FAILED
+    status = Column(String, default="SENT", nullable=False)  # PENDING, SENT, DELIVERED, FAILED
+    provider_reference = Column(String, nullable=True)
+    failure_reason = Column(String, nullable=True)
     
     created_at = Column(DateTime(timezone=True), default=utc_now)
+    sent_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     merchant = relationship("Merchant", back_populates="notifications")
