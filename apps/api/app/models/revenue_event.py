@@ -11,6 +11,10 @@ class RevenueEvent(Base):
     merchant_id = Column(String, ForeignKey("merchants.id", ondelete="CASCADE"), nullable=False, index=True)
     customer_id = Column(String, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     order_id = Column(String, ForeignKey("orders.id", ondelete="CASCADE"), nullable=True, index=True)
+    invoice_id = Column(String, ForeignKey("invoices.id", ondelete="CASCADE"), nullable=True, index=True)
+    subscription_id = Column(String, nullable=True, index=True)
+    billing_cycle_id = Column(String, nullable=True, index=True)
+    provider_state = Column(String, nullable=True)
     event_type = Column(String, nullable=False, index=True)  # PAYMENT_FAILED, CHECKOUT_ABANDONED, SUBSCRIPTION_HALTED
     amount_paise = Column(BigInteger, nullable=False)
     failure_reason = Column(String, nullable=True)
@@ -23,4 +27,5 @@ class RevenueEvent(Base):
     merchant = relationship("Merchant", back_populates="revenue_events")
     customer = relationship("Customer", back_populates="revenue_events")
     order = relationship("Order", back_populates="revenue_events")
+    invoice = relationship("Invoice", back_populates="revenue_events")
     recovery_case = relationship("RecoveryCase", back_populates="revenue_event", uselist=False, cascade="all, delete-orphan")

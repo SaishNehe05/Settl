@@ -23,6 +23,10 @@ def create_case_for_event(db: Session, event: RevenueEvent) -> RecoveryCase:
     case = RecoveryCase(
         merchant_id=event.merchant_id,
         revenue_event_id=event.id,
+        invoice_id=event.invoice_id,
+        subscription_id=event.subscription_id,
+        billing_cycle_id=event.billing_cycle_id,
+        provider_state=event.provider_state,
         amount_at_risk_paise=event.amount_paise,
         recovery_probability=0.0,
         priority="MEDIUM",
@@ -283,11 +287,27 @@ def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Di
         )
         db.add(notif)
         
-    elif action_type in ["SEND_REMINDER", "SEND_PAYMENT_LINK"]:
+    elif action_type in ["SEND_REMINDER", "SEND_FOLLOW_UP", "SEND_PAYMENT_LINK", "CUSTOMER_ACTION_REQUIRED"]:
         response_payload = {"status": "sent", "channel": "email", "recipient": customer.email if customer else "unknown"}
-        audit_event = "REMINDER_SENT"
-        audit_reason = f"Sent reminder to {customer.email if customer else 'customer'} for ₹{case.amount_at_risk_paise/100:,.2f}."
+        audit_event = f"{action_type}_SENT"
+        audit_reason = f"Sent {action_type} to {customer.email if customer else 'customer'} for ₹{case.amount_at_risk_paise/100:,.2f}."
         next_case_status = "WAITING_RESULT"
+        
+        # Persist notification
+        from app.models.notification import Notification
+        notif = Notification(
+            merchant_id=case.merchant_id,
+            case_id=case.id,
+            channel="EMAIL_SMS",
+            provider="razorpay",
+            message_type="CUSTOMER_ACTION",
+            recipient=customer.email if customer else "unknown",
+            content=f"Please update your payment instrument for subscription {case.subscription_id or ''}.",
+            status="PENDING",
+            provider_reference=None,
+            sent_at=datetime.now(timezone.utc)
+        )
+        db.add(notif)
         
     elif action_type in ["MONITOR", "WAIT", "FOLLOW_UP"]:
         response_payload = {"status": "scheduled", "action": action_type}
@@ -360,17 +380,38 @@ def handle_payment_recovered(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    # Invariant: Amount integrity verification
-    if paid_amount_paise < case.amount_at_risk_paise:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Amount mismatch: paid {paid_amount_paise} paise is less than required {case.amount_at_risk_paise} paise"
-        )
+    # Cumulative recovery logic
+    total_recovered = (case.amount_recovered_paise or 0) + paid_amount_paise
+    case.amount_recovered_paise = total_recovered
 
-    # Update case to terminal RECOVERED state
-    case.status = "RECOVERED"
-    case.amount_recovered_paise = paid_amount_paise
-    case.resolved_at = datetime.now(timezone.utc)
+    is_fully_recovered = total_recovered >= case.amount_at_risk_paise
+    
+    # Update linked invoice if present
+    if case.invoice:
+        case.invoice.paid_amount_paise += paid_amount_paise
+        if case.invoice.paid_amount_paise >= case.invoice.amount_paise:
+            case.invoice.status = "PAID"
+        else:
+            case.invoice.status = "PARTIALLY_PAID"
+
+    # Update linked promise if present
+    if getattr(case, 'promises', None):
+        for p in case.promises:
+            if p.status in ("ACTIVE", "PARTIALLY_FULFILLED", "BROKEN"):
+                p.fulfilled_amount_paise += paid_amount_paise
+                p.fulfilled_at = datetime.now(timezone.utc)
+                if p.fulfilled_amount_paise >= p.promised_amount_paise:
+                    p.status = "FULFILLED"
+                else:
+                    p.status = "PARTIALLY_FULFILLED"
+
+    if is_fully_recovered:
+        # Update case to terminal RECOVERED state
+        case.status = "RECOVERED"
+        case.resolved_at = datetime.now(timezone.utc)
+    else:
+        # Update case to PARTIALLY_RECOVERED, leave open for further actions
+        case.status = "PARTIALLY_RECOVERED"
 
     # Update pending action to SUCCESS
     pending_action = (

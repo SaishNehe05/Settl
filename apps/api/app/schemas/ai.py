@@ -25,6 +25,9 @@ AllowedRecoveryAction = Literal[
     "INITIATE_IVR",
     "TRACK_PROMISE",
     "WAIT",
+    "CUSTOMER_ACTION_REQUIRED",
+    "SEND_FOLLOW_UP",
+    "CREATE_COLLECTION_CASE",
     "ESCALATE",
     "STOP",
 ]

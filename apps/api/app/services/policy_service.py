@@ -36,6 +36,28 @@ def evaluate_policy_guardrails(
             details="Customer has explicitly opted out of automated communications. Contact blocked."
         )
 
+    # 1.5 Promise to Pay rules
+    promises = getattr(case, 'promises', [])
+    if promises:
+        active_promise = next((p for p in promises if p.status == "ACTIVE"), None)
+        broken_promises = [p for p in promises if p.status == "BROKEN"]
+        
+        # If there's an active promise, we wait until the promise date
+        if active_promise:
+            return PolicyResult(
+                status="WAIT",
+                reason="ACTIVE_PROMISE",
+                details=f"Customer has an active promise to pay by {active_promise.promise_date.strftime('%Y-%m-%d')}. Waiting."
+            )
+            
+        # If customer breaks multiple promises, escalate
+        if len(broken_promises) >= 2:
+            return PolicyResult(
+                status="ESCALATED",
+                reason="REPEATED_BROKEN_PROMISES",
+                details=f"Customer has broken {len(broken_promises)} payment promises. Escalating to collections."
+            )
+
     # 2. Maximum automated attempts check
     if case.attempt_count >= policy.max_attempts:
         return PolicyResult(
@@ -82,6 +104,15 @@ def evaluate_policy_guardrails(
             reason="SUBSCRIPTION_MAX_RETRIES",
             details=f"Subscription recovery reached max retries ({case.attempt_count}/3). Accepting churn to preserve customer relationship."
         )
+        
+    # Subscription: Prevent Payment Link collision with native retries
+    if case.subscription_id and proposed_action == "CREATE_PAYMENT_LINK":
+        if case.provider_state == "pending":
+            return PolicyResult(
+                status="WAIT",
+                reason="NATIVE_RETRY_ACTIVE",
+                details="Cannot create Payment Link while native Razorpay subscription retry is pending."
+            )
     
     # B2B: Escalate if >₹1,00,000
     if "B2B" in root_cause and case.amount_at_risk_paise > 10000000:
@@ -100,7 +131,7 @@ def evaluate_policy_guardrails(
         )
     
     # Voice/IVR: Only between 9 AM – 7 PM IST
-    if "REGIONAL" in root_cause or "VOICE" in root_cause or "IVR" in root_cause:
+    if "REGIONAL" in root_cause or "REGIONAL_VOICE" in root_cause or proposed_action == "INITIATE_IVR":
         from datetime import timedelta
         ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
         hour = ist_now.hour
@@ -124,6 +155,13 @@ def evaluate_policy_guardrails(
             status="ESCALATED",
             reason="RECOMMENDED_ESCALATION",
             details="Action recommended was ESCALATE. Operator review required."
+        )
+
+    if proposed_action == "CREATE_COLLECTION_CASE":
+        return PolicyResult(
+            status="ESCALATED",
+            reason="COLLECTION_CASE_CREATED",
+            details="Action recommended was CREATE_COLLECTION_CASE. Route to manual collection queue."
         )
 
     if proposed_action == "WAIT":

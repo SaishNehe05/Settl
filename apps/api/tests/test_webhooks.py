@@ -110,18 +110,4 @@ def test_webhook_payment_link_paid_end_to_end(client, db):
     assert ("RAZORPAY_WEBHOOK", "PAYMENT_RECOVERED") in audit_events
 
 
-def test_simulate_webhook_endpoint(client, db):
-    # Test simulation endpoint
-    resp = client.post("/api/v1/events/simulate", json={"scenario": "clean_recovery"})
-    case_id = resp.json()["case"]["id"]
 
-    # Since auto_pipeline=True, the case is already executed to WAITING_RESULT
-    
-    # 2. Simulate Webhook
-    wh_resp = client.post(
-        "/api/v1/webhooks/razorpay/simulate",
-        json={"case_id": case_id}
-    )
-    assert wh_resp.status_code == 200
-    assert wh_resp.json()["case_status"] == "RECOVERED"
-    assert wh_resp.json()["amount_recovered_paise"] == 849900

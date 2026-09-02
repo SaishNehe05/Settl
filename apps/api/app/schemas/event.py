@@ -17,6 +17,8 @@ class EventCreate(BaseModel):
     # Scenario metadata
     scenario_type: Optional[str] = None  # payment_degradation, checkout_dropoff, subscription_failure, etc.
     subscription_id: Optional[str] = None
+    billing_cycle_id: Optional[str] = None
+    provider_state: Optional[str] = None
     mandate_id: Optional[str] = None
     invoice_id: Optional[str] = None
     
@@ -34,6 +36,10 @@ class EventResponse(BaseModel):
     merchant_id: str
     customer_id: str
     order_id: Optional[str] = None
+    invoice_id: Optional[str] = None
+    subscription_id: Optional[str] = None
+    billing_cycle_id: Optional[str] = None
+    provider_state: Optional[str] = None
     event_type: str
     amount_paise: int
     failure_reason: Optional[str] = None

@@ -18,9 +18,11 @@ class Merchant(Base):
     # Relationships
     customers = relationship("Customer", back_populates="merchant", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="merchant", cascade="all, delete-orphan")
+    invoices = relationship("Invoice", back_populates="merchant", cascade="all, delete-orphan")
     revenue_events = relationship("RevenueEvent", back_populates="merchant", cascade="all, delete-orphan")
     recovery_cases = relationship("RecoveryCase", back_populates="merchant", cascade="all, delete-orphan")
     policy = relationship("Policy", back_populates="merchant", uselist=False, cascade="all, delete-orphan")
+    promises = relationship("Promise", back_populates="merchant", cascade="all, delete-orphan")
     checkout_sessions = relationship("CheckoutSession", back_populates="merchant", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="merchant", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="merchant", cascade="all, delete-orphan")

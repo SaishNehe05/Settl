@@ -13,6 +13,7 @@ class Customer(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=True, index=True)
     phone = Column(String, nullable=True)
+
     success_rate = Column(Float, default=1.0)
     customer_value = Column(String, default="MEDIUM")  # LOW, MEDIUM, HIGH
     opted_out = Column(Boolean, default=False)
@@ -20,6 +21,7 @@ class Customer(Base):
 
     # Relationships
     merchant = relationship("Merchant", back_populates="customers")
-    orders = relationship("Order", back_populates="customer")
+    orders = relationship("Order", back_populates="customer", cascade="all, delete-orphan")
+    invoices = relationship("Invoice", back_populates="customer", cascade="all, delete-orphan")
     revenue_events = relationship("RevenueEvent", back_populates="customer", cascade="all, delete-orphan")
     promises = relationship("Promise", back_populates="customer", cascade="all, delete-orphan")

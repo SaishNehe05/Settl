@@ -42,9 +42,4 @@ def test_ingest_event_idempotency(client):
     assert case1_id == case2_id
 
 
-def test_simulate_event_api(client):
-    response = client.post("/api/v1/events/simulate", json={"scenario": "high_value"})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["case"]["status"] == "ESCALATED"
-    assert data["case"]["amount_at_risk_paise"] == 4500000
+

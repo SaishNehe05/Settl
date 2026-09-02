@@ -15,10 +15,7 @@ import {
 import { fetchDashboardSummary } from "@/lib/api";
 import { formatINR, formatPercent, formatDate } from "@/lib/utils";
 import StatusBadge from "@/components/cases/status-badge";
-import SimulateModal from "@/components/dashboard/simulate-modal";
 import { MerchantName } from "@/components/auth/merchant-name";
-
-import ModeToggle from "@/components/dashboard/mode-toggle";
 
 export const revalidate = 0; // Fresh data per request
 
@@ -101,8 +98,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <ModeToggle />
-          <SimulateModal />
           <Link
             href="/cases"
             className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-500 transition-colors shadow-lg shadow-sky-600/20"

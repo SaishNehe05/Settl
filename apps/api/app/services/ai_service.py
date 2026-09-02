@@ -27,7 +27,8 @@ CRITICAL OPERATIONAL RULES:
    - "CREATE_PAYMENT_LINK": Generate and issue a new payment link.
    - "SEND_PAYMENT_LINK": Re-issue an existing active payment link.
    - "SEND_REMINDER": Send a gentle reminder for an abandoned checkout or pending link.
-   - "WAIT": Defer action if bank/network is experiencing a transient outage or cooldown is active.
+   - "WAIT": Defer action if bank/network is experiencing a transient outage, cooldown is active, or native provider retry is pending.
+   - "CUSTOMER_ACTION_REQUIRED": Send a notification instructing the customer to update their payment instrument (for halted subscriptions).
    - "ESCALATE": Flag for merchant review if transaction amount is unusually high or risk is ambiguous.
    - "STOP": Do not recover if customer opted out, maximum attempts exceeded, or failure is fatal.
 3. You must NEVER recommend unauthorized actions such as charging cards directly or bypassing policies.
@@ -100,14 +101,17 @@ def _generate_grounded_fallback(
         sentiment_risk = "MEDIUM"
         channel = "IVR"
         delay = 60
-    elif any(k in reason for k in ["promise", "acknowledged", "committed", "will_pay"]):
-        category: FailureCategory = "PROMISE_TO_PAY"
+    elif any(k in reason for k in ["promise", "acknowledged", "committed", "will_pay"]) or (case.promises and any(p.status in ["ACTIVE", "BROKEN"] for p in case.promises)):
+        category = "PROMISE_TO_PAY"
         summary = "Customer acknowledged outstanding amount and committed to pay by a specific date. Promise tracking initiated."
         evidence = [
             f"Customer '{customer.name}' acknowledged debt of ₹{amount/100:,.2f}",
-            f"Promise reason: '{event.failure_reason}'",
             "Gentle reminder sequence needed if promise date is missed",
         ]
+        if case.promises and any(p.status == "BROKEN" for p in case.promises):
+            summary = "Customer missed promised payment date."
+            evidence.append("Promise broken. Initiating follow-up protocol.")
+            
         sentiment_risk = "LOW"
         channel = "WHATSAPP"
         delay = 2880  # 48 hours
@@ -196,19 +200,45 @@ def _generate_grounded_fallback(
             reasoning=f"B2B receivable of ₹{amount/100:,.2f} exceeds ₹1,00,000 threshold. Requires senior review and structured collection.",
         )
     elif category == "B2B_OVERDUE":
+        days_overdue = event.raw_payload.get("days_overdue", 1) if event.raw_payload else 1
+        if days_overdue >= 7:
+            action = "CREATE_COLLECTION_CASE"
+            reason = f"B2B invoice is {days_overdue} days overdue. Escalating to human collections queue."
+        elif days_overdue >= 3:
+            action = "SEND_FOLLOW_UP"
+            reason = f"B2B invoice is {days_overdue} days overdue. Sending structured follow-up."
+        else:
+            action = "SEND_REMINDER"
+            reason = f"B2B invoice is {days_overdue} days overdue. Sending initial gentle payment reminder."
+            
         decision = RecoveryDecisionOutput(
-            recommended_action="SEND_REMINDER",
+            recommended_action=action,
             channel="EMAIL",
             delay_minutes=0,
-            reasoning=f"B2B receivable of ₹{amount/100:,.2f} within automated threshold. Sending structured payment reminder.",
+            reasoning=reason,
         )
     elif category == "SUBSCRIPTION_CHURN":
-        decision = RecoveryDecisionOutput(
-            recommended_action="SEND_REMINDER",
-            channel="WHATSAPP",
-            delay_minutes=30,
-            reasoning="Subscription billing failed. Sending grace-period reminder with updated payment link before churn.",
-        )
+        if event.provider_state == "pending":
+            decision = RecoveryDecisionOutput(
+                recommended_action="WAIT",
+                channel=channel,
+                delay_minutes=30,
+                reasoning="Subscription is pending and Razorpay is actively retrying. Deferring action to avoid duplicate billing.",
+            )
+        elif event.provider_state == "halted":
+            decision = RecoveryDecisionOutput(
+                recommended_action="CUSTOMER_ACTION_REQUIRED",
+                channel="EMAIL",
+                delay_minutes=0,
+                reasoning="Subscription halted after exhaustion of native retries. Customer must update payment instrument.",
+            )
+        else:
+            decision = RecoveryDecisionOutput(
+                recommended_action="SEND_REMINDER",
+                channel="WHATSAPP",
+                delay_minutes=30,
+                reasoning="Subscription billing failed. Sending grace-period reminder before churn.",
+            )
     elif category == "MANDATE_BOUNCE":
         decision = RecoveryDecisionOutput(
             recommended_action="RETRY_MANDATE",
@@ -224,12 +254,39 @@ def _generate_grounded_fallback(
             reasoning="Regional customer identified. Initiating Hinglish IVR call for 2.3x higher conversion vs SMS/email.",
         )
     elif category == "PROMISE_TO_PAY":
-        decision = RecoveryDecisionOutput(
-            recommended_action="TRACK_PROMISE",
-            channel="WHATSAPP",
-            delay_minutes=2880,
-            reasoning="Customer has acknowledged the debt. Tracking promise-to-pay date. Will escalate if commitment is missed.",
-        )
+        promises = case.promises
+        active_promise = next((p for p in promises if p.status == "ACTIVE"), None)
+        broken_promises = [p for p in promises if p.status == "BROKEN"]
+        
+        if active_promise:
+            decision = RecoveryDecisionOutput(
+                recommended_action="WAIT",
+                channel="WHATSAPP",
+                delay_minutes=0,
+                reasoning="Customer has an active Promise to Pay. Tracking promise-to-pay date. Waiting for customer to fulfill commitment.",
+            )
+        elif broken_promises:
+            if len(broken_promises) >= 2:
+                decision = RecoveryDecisionOutput(
+                    recommended_action="ESCALATE",
+                    channel="EMAIL",
+                    delay_minutes=0,
+                    reasoning=f"Customer has broken {len(broken_promises)} payment promises. Escalating to human collections.",
+                )
+            else:
+                decision = RecoveryDecisionOutput(
+                    recommended_action="SEND_FOLLOW_UP",
+                    channel="WHATSAPP",
+                    delay_minutes=0,
+                    reasoning="Customer missed the agreed payment date. Sending follow-up.",
+                )
+        else:
+            decision = RecoveryDecisionOutput(
+                recommended_action="TRACK_PROMISE",
+                channel="WHATSAPP",
+                delay_minutes=2880,
+                reasoning="Customer has acknowledged the debt. Tracking promise-to-pay date.",
+            )
     elif amount > 1000000:
         decision = RecoveryDecisionOutput(
             recommended_action="ESCALATE",
@@ -282,6 +339,7 @@ def analyze_and_decide(
         "amount_paise": case.amount_at_risk_paise,
         "amount_inr": case.amount_at_risk_paise / 100,
         "attempt_count": case.attempt_count,
+        "provider_state": event.provider_state,
         "customer": {
             "name": customer.name,
             "success_rate": customer.success_rate if not getattr(customer, 'total_transactions', 0) <= 1 else "New Customer (No History)",
@@ -289,6 +347,30 @@ def analyze_and_decide(
             "opted_out": customer.opted_out,
         },
     }
+    
+    if event.event_type == "INVOICE_OVERDUE":
+        context_payload["invoice_id"] = event.invoice_id
+        if event.raw_payload and "days_overdue" in event.raw_payload:
+            context_payload["days_overdue"] = event.raw_payload["days_overdue"]
+            
+    # Inject promise history
+    promises = case.promises
+    if promises:
+        active_promise = next((p for p in promises if p.status == "ACTIVE"), None)
+        broken_promises = [p for p in promises if p.status == "BROKEN"]
+        fulfilled_promises = [p for p in promises if p.status == "FULFILLED"]
+        
+        context_payload["promise_history"] = {
+            "total": len(promises),
+            "broken": len(broken_promises),
+            "fulfilled": len(fulfilled_promises),
+            "has_active_promise": bool(active_promise),
+            "active_promise_amount": active_promise.promised_amount_paise if active_promise else 0,
+        }
+        
+        # Override failure reason internally if there's a broken promise currently being evaluated
+        if len(broken_promises) > 0 and not active_promise:
+            context_payload["is_broken_promise_evaluation"] = True
 
     # Attempt external LLM call if API key exists
     llm_succeeded = False

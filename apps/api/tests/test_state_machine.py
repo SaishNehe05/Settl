@@ -51,8 +51,16 @@ def test_state_machine_lifecycle(db):
 
 
 def test_human_operator_review_flow(client, db):
-    # Ingest high value event that escalates
-    resp = client.post("/api/v1/events/simulate", json={"scenario": "high_value"})
+    payload = {
+        "event_id": "EVT_TEST_HUMAN_01",
+        "customer_name": "Test User",
+        "customer_email": "test@example.com",
+        "event_type": "PAYMENT_FAILED",
+        "amount_paise": 4500000,
+        "failure_reason": "high_value_transaction_failed",
+        "source": "synthetic"
+    }
+    resp = client.post("/api/v1/events", json=payload)
     case_id = resp.json()["case"]["id"]
     assert resp.json()["case"]["status"] == "ESCALATED"
 

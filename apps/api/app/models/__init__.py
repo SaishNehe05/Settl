@@ -13,12 +13,14 @@ from app.models.notification import Notification
 from app.models.webhook_event import WebhookEvent
 from app.models.promise import Promise
 from app.models.checkout_session import CheckoutSession
+from app.models.invoice import Invoice
 
 __all__ = [
     "Base",
     "Merchant",
     "Customer",
     "Order",
+    "Invoice",
     "Payment",
     "RevenueEvent",
     "RecoveryCase",

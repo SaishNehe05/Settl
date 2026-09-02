@@ -10,6 +10,10 @@ class RecoveryCase(Base):
     id = Column(String, primary_key=True, default=lambda: generate_uuid("CASE"))
     merchant_id = Column(String, ForeignKey("merchants.id", ondelete="CASCADE"), nullable=False, index=True)
     revenue_event_id = Column(String, ForeignKey("revenue_events.id", ondelete="CASCADE"), unique=True, nullable=False)
+    invoice_id = Column(String, ForeignKey("invoices.id", ondelete="CASCADE"), nullable=True, index=True)
+    subscription_id = Column(String, nullable=True, index=True)
+    billing_cycle_id = Column(String, nullable=True, index=True)
+    provider_state = Column(String, nullable=True)
     
     amount_at_risk_paise = Column(BigInteger, nullable=False)
     recovery_probability = Column(Float, default=0.0)
@@ -32,6 +36,7 @@ class RecoveryCase(Base):
     # Relationships
     merchant = relationship("Merchant", back_populates="recovery_cases")
     revenue_event = relationship("RevenueEvent", back_populates="recovery_case")
+    invoice = relationship("Invoice")
     recovery_actions = relationship("RecoveryAction", back_populates="recovery_case", cascade="all, delete-orphan", order_by="RecoveryAction.executed_at.desc()")
     audit_logs = relationship("AuditLog", back_populates="recovery_case", cascade="all, delete-orphan", order_by="AuditLog.created_at")
     model_predictions = relationship("ModelPrediction", back_populates="recovery_case", cascade="all, delete-orphan")

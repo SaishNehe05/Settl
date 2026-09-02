@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api.v1.router import api_v1_router
-from app.database import engine, Base
+from app.database import engine, Base, SessionLocal
 import app.models  # Ensure all models are registered
 
 # Ensure tables exist (Alembic manages migrations)
@@ -12,16 +12,28 @@ if settings.sqlalchemy_database_url.startswith("sqlite"):
 import asyncio
 from contextlib import asynccontextmanager
 from app.services.abandonment_worker import abandonment_worker_loop
+from app.services.overdue_worker import detect_overdue_invoices
+from app.services.promise_worker import promise_lifecycle_worker
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    task = asyncio.create_task(abandonment_worker_loop())
+    # Initialize DB (in production, use Alembic)
+    engine = SessionLocal().get_bind()
+    Base.metadata.create_all(bind=engine)
+    
+    # Start background workers
+    abandonment_task = asyncio.create_task(abandonment_worker_loop())
+    overdue_task = asyncio.create_task(detect_overdue_invoices())
+    promise_task = asyncio.create_task(promise_lifecycle_worker())
     yield
-    # Shutdown
-    task.cancel()
+    # Shutdown background workers
+    abandonment_task.cancel()
+    overdue_task.cancel()
+    promise_task.cancel()
     try:
-        await task
+        await abandonment_task
+        await overdue_task
+        await promise_task
     except asyncio.CancelledError:
         pass
 

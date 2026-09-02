@@ -14,6 +14,7 @@ from app.schemas.recovery_case import (
     CustomerResponse,
     ModelPredictionResponse,
 )
+from app.schemas.promise import PromiseCreate, PromiseResponse
 from app.api.deps import get_current_merchant
 
 router = APIRouter(prefix="/recovery-cases", tags=["Recovery Cases"])
