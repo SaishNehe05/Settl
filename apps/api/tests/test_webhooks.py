@@ -1,10 +1,16 @@
+"""
+Legacy webhook tests — updated for the new ingestion architecture.
+Tests the end-to-end flow from webhook → case creation → recovery verification.
+"""
 import json
 from app.models.recovery_case import RecoveryCase
 from app.models.recovery_action import RecoveryAction
 from app.models.customer import Customer
 from app.models.revenue_event import RevenueEvent
+from app.models.webhook_event import WebhookEvent
 from app.services.razorpay_service import compute_signature_for_test
 from app.services.recovery_service import create_case_for_event, execute_case_pipeline, execute_approved_action
+from app.services.webhook_processor import process_webhook_sync
 
 
 def test_webhook_missing_signature(client):
@@ -24,6 +30,10 @@ def test_webhook_invalid_signature(client):
 
 
 def test_webhook_payment_link_paid_end_to_end(client, db):
+    """
+    Full end-to-end: create case via event service → execute pipeline → 
+    simulate payment_link.paid webhook → verify recovery.
+    """
     merchant_id = "MER_DEMO_01"
     customer = Customer(
         merchant_id=merchant_id,
@@ -53,12 +63,11 @@ def test_webhook_payment_link_paid_end_to_end(client, db):
     case = execute_case_pipeline(db, case.id)
     assert case.status == "WAITING_RESULT"
 
-    # We don't need to manually execute since it was automatic
     # Find the link generated automatically
     action = db.query(RecoveryAction).filter(RecoveryAction.case_id == case.id).first()
     plink_id = action.razorpay_entity_id
 
-    # 3. Simulate incoming Razorpay payment_link.paid webhook
+    # 2. Build a payment_link.paid webhook and process it
     event_id = f"evt_test_{case.id}"
     webhook_payload = {
         "entity": "event",
@@ -97,7 +106,12 @@ def test_webhook_payment_link_paid_end_to_end(client, db):
         headers={"X-Razorpay-Signature": sig, "Content-Type": "application/json"}
     )
     assert response.status_code == 200
-    assert response.json()["status"] == "success"
+    assert response.json()["status"] == "received"
+
+    # 3. Process the webhook synchronously (simulates background task)
+    webhook_id = response.json()["webhook_id"]
+    wh = db.query(WebhookEvent).filter(WebhookEvent.id == webhook_id).first()
+    process_webhook_sync(db, wh)
 
     # 4. Verify case is RECOVERED with verified amount
     db.refresh(case)
@@ -108,6 +122,3 @@ def test_webhook_payment_link_paid_end_to_end(client, db):
     # Verify audit log includes PAYMENT_RECOVERED from RAZORPAY_WEBHOOK
     audit_events = [(log.actor, log.event_name) for log in case.audit_logs]
     assert ("RAZORPAY_WEBHOOK", "PAYMENT_RECOVERED") in audit_events
-
-
-

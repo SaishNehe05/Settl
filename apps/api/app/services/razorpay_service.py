@@ -119,11 +119,22 @@ def verify_razorpay_webhook_signature(
     """
     Verifies that the incoming webhook was authentically signed by Razorpay
     using HMAC-SHA256 on the exact raw request bytes.
+
+    When a real RAZORPAY_WEBHOOK_SECRET is configured, it is used strictly.
+    In local test/development mode (empty or placeholder secret), falls back
+    to a development-only test secret for unit testing.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     webhook_secret = secret or settings.RAZORPAY_WEBHOOK_SECRET
-    if not webhook_secret or webhook_secret == "placeholder_webhook_secret":
-        # In local test/development mode with placeholder, allow development signatures or test secret
+
+    if not webhook_secret or webhook_secret in ("placeholder_webhook_secret", "YourWebhookSecretHere", ""):
+        # Development/test mode fallback
         webhook_secret = "settl_test_webhook_secret"
+        logger.debug("Using development test webhook secret for signature verification")
+    else:
+        logger.debug("Using configured RAZORPAY_WEBHOOK_SECRET for signature verification")
 
     expected_signature = hmac.new(
         key=webhook_secret.encode("utf-8"),
@@ -131,15 +142,20 @@ def verify_razorpay_webhook_signature(
         digestmod=hashlib.sha256,
     ).hexdigest()
 
-    return hmac.compare_digest(expected_signature, signature)
+    is_valid = hmac.compare_digest(expected_signature, signature)
+    if not is_valid:
+        logger.warning(f"Webhook signature mismatch (body_len={len(raw_body)} bytes)")
+
+    return is_valid
 
 
 def compute_signature_for_test(raw_body: bytes, secret: str = "settl_test_webhook_secret") -> str:
     """
-    Helper for generating valid HMAC-SHA256 test signatures in unit tests and simulation.
+    Helper for generating valid HMAC-SHA256 test signatures in unit tests.
     """
     return hmac.new(
         key=secret.encode("utf-8"),
         msg=raw_body,
         digestmod=hashlib.sha256,
     ).hexdigest()
+

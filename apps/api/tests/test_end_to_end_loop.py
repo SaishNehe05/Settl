@@ -11,6 +11,8 @@ from app.services.recovery_service import (
     execute_approved_action,
     handle_human_review,
 )
+from app.services.webhook_processor import process_webhook_sync
+from app.models.webhook_event import WebhookEvent
 
 
 def test_primary_8499_recovery_full_loop(client, db):
@@ -115,6 +117,11 @@ def test_primary_8499_recovery_full_loop(client, db):
         headers={"X-Razorpay-Signature": sig, "Content-Type": "application/json"}
     )
     assert wh_res.status_code == 200
+
+    # 6.5 Process webhook synchronously (simulates background worker)
+    webhook_id = wh_res.json()["webhook_id"]
+    wh = db.query(WebhookEvent).filter(WebhookEvent.id == webhook_id).first()
+    process_webhook_sync(db, wh)
 
     # 7. Verification of Terminal State
     db.refresh(case)

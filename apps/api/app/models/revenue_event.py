@@ -23,6 +23,13 @@ class RevenueEvent(Base):
     raw_payload = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), default=utc_now)
 
+    # Provider-level traceability (populated from Razorpay webhooks)
+    payment_id = Column(String, nullable=True, index=True)       # Razorpay pay_xxx
+    payment_link_id = Column(String, nullable=True, index=True)  # Razorpay plink_xxx
+    payment_method = Column(String, nullable=True)               # upi, card, netbanking, wallet
+    payment_status = Column(String, nullable=True)               # captured, failed, authorized
+    webhook_event_id = Column(String, nullable=True, index=True) # FK back to originating WebhookEvent.id
+
     # Relationships
     merchant = relationship("Merchant", back_populates="revenue_events")
     customer = relationship("Customer", back_populates="revenue_events")

@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from app.services.abandonment_worker import abandonment_worker_loop
 from app.services.overdue_worker import detect_overdue_invoices
 from app.services.promise_worker import promise_lifecycle_worker
+from app.services.webhook_worker import webhook_retry_worker
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,15 +26,18 @@ async def lifespan(app: FastAPI):
     abandonment_task = asyncio.create_task(abandonment_worker_loop())
     overdue_task = asyncio.create_task(detect_overdue_invoices())
     promise_task = asyncio.create_task(promise_lifecycle_worker())
+    webhook_task = asyncio.create_task(webhook_retry_worker())
     yield
     # Shutdown background workers
     abandonment_task.cancel()
     overdue_task.cancel()
     promise_task.cancel()
+    webhook_task.cancel()
     try:
         await abandonment_task
         await overdue_task
         await promise_task
+        await webhook_task
     except asyncio.CancelledError:
         pass
 
