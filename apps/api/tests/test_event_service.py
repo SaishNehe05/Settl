@@ -15,7 +15,7 @@ def test_ingest_event_api(client):
     assert "case" in data
     assert data["event"]["id"] == "EVT_TEST_INGEST_01"
     assert data["event"]["amount_paise"] == 649900
-    assert data["case"]["status"] == "APPROVED"  # Passes policy since amount <= 10k & prob >= 40%
+    assert data["case"]["status"] == "WAITING_RESULT"  # Passes policy and automatically executes
 
 
 def test_ingest_event_idempotency(client):

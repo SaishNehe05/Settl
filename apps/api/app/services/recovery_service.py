@@ -173,10 +173,14 @@ def evaluate_policy_for_case(db: Session, case_id: str) -> Tuple[RecoveryCase, P
 
 def execute_case_pipeline(db: Session, case_id: str) -> RecoveryCase:
     """
-    Executes full deterministic pipeline from NEW -> READY -> POLICY EVALUATION.
+    Executes full deterministic pipeline from NEW -> READY -> POLICY EVALUATION -> EXECUTE (if ALLOWED).
     """
     analyze_case(db, case_id)
-    case, _ = evaluate_policy_for_case(db, case_id)
+    case, result = evaluate_policy_for_case(db, case_id)
+    
+    if result.status == "ALLOW":
+        case, _ = execute_approved_action(db, case_id)
+        
     return case
 
 

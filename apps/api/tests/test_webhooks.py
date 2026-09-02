@@ -1,5 +1,6 @@
 import json
 from app.models.recovery_case import RecoveryCase
+from app.models.recovery_action import RecoveryAction
 from app.models.customer import Customer
 from app.models.revenue_event import RevenueEvent
 from app.services.razorpay_service import compute_signature_for_test
@@ -47,15 +48,15 @@ def test_webhook_payment_link_paid_end_to_end(client, db):
     db.add(event)
     db.flush()
 
-    # 1. Pipeline: NEW -> APPROVED
+    # 1. Pipeline: NEW -> READY -> APPROVED -> WAITING_RESULT (Automatic Execution)
     case = create_case_for_event(db, event)
     case = execute_case_pipeline(db, case.id)
-    assert case.status == "APPROVED"
-
-    # 2. Execute: APPROVED -> WAITING_RESULT
-    case, link = execute_approved_action(db, case.id)
     assert case.status == "WAITING_RESULT"
-    plink_id = link["id"]
+
+    # We don't need to manually execute since it was automatic
+    # Find the link generated automatically
+    action = db.query(RecoveryAction).filter(RecoveryAction.case_id == case.id).first()
+    plink_id = action.razorpay_entity_id
 
     # 3. Simulate incoming Razorpay payment_link.paid webhook
     event_id = f"evt_test_{case.id}"
@@ -114,13 +115,13 @@ def test_simulate_webhook_endpoint(client, db):
     resp = client.post("/api/v1/events/simulate", json={"scenario": "clean_recovery"})
     case_id = resp.json()["case"]["id"]
 
-    # Execute to APPROVED -> WAITING_RESULT
-    exec_resp = client.post(f"/api/v1/recovery-cases/{case_id}/execute")
-    assert exec_resp.status_code == 200
-    assert exec_resp.json()["status"] == "WAITING_RESULT"
-
-    # Simulate paid webhook
-    wh_resp = client.post("/api/v1/webhooks/razorpay/simulate", json={"case_id": case_id})
+    # Since auto_pipeline=True, the case is already executed to WAITING_RESULT
+    
+    # 2. Simulate Webhook
+    wh_resp = client.post(
+        "/api/v1/webhooks/razorpay/simulate",
+        json={"case_id": case_id}
+    )
     assert wh_resp.status_code == 200
     assert wh_resp.json()["case_status"] == "RECOVERED"
     assert wh_resp.json()["amount_recovered_paise"] == 849900
