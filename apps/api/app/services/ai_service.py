@@ -49,6 +49,8 @@ def _generate_grounded_fallback(
     amount = case.amount_at_risk_paise
     success_rate = customer.success_rate if customer.success_rate is not None else 0.5
 
+    is_new_customer = getattr(customer, 'total_transactions', 0) <= 1
+    
     # 1. Categorize Failure across all 7 scenario types
     if any(k in reason for k in ["subscription", "recurring", "renewal", "sub_"]):
         category: FailureCategory = "SUBSCRIPTION_CHURN"
@@ -56,9 +58,10 @@ def _generate_grounded_fallback(
         evidence = [
             f"Event type: {event.event_type}",
             f"Subscription failure reason: '{event.failure_reason}'",
-            f"Customer '{customer.name}' has {success_rate*100:.0f}% historical success rate",
             "Auto-debit cycle triggered decline — grace period recommended",
         ]
+        if not is_new_customer:
+            evidence.append(f"Customer '{customer.name}' has {success_rate*100:.0f}% historical success rate")
         sentiment_risk = "MEDIUM"
         channel = "WHATSAPP"
         delay = 30
@@ -127,9 +130,10 @@ def _generate_grounded_fallback(
         )
         evidence = [
             f"Reported gateway failure: '{event.failure_reason}'",
-            f"Customer '{customer.name}' has strong historical completion rate ({success_rate*100:.0f}%)",
             f"Transaction amount: ₹{amount/100:,.2f}",
         ]
+        if not is_new_customer:
+            evidence.append(f"Customer '{customer.name}' has strong historical completion rate ({success_rate*100:.0f}%)")
         sentiment_risk = "LOW"
         channel = "WHATSAPP"
         delay = 0
@@ -280,7 +284,7 @@ def analyze_and_decide(
         "attempt_count": case.attempt_count,
         "customer": {
             "name": customer.name,
-            "success_rate": customer.success_rate,
+            "success_rate": customer.success_rate if not getattr(customer, 'total_transactions', 0) <= 1 else "New Customer (No History)",
             "value_tier": customer.customer_value,
             "opted_out": customer.opted_out,
         },

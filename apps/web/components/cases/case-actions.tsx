@@ -58,7 +58,14 @@ export default function CaseActions({ caseId, status, eventType, actualAction }:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ case_id: caseId }),
       });
-      if (!res.ok) throw new Error("Failed to dispatch simulation webhook");
+      if (!res.ok) {
+        let errorMsg = "Failed to dispatch simulation webhook";
+        try {
+            const data = await res.json();
+            errorMsg = data.detail || data.message || errorMsg;
+        } catch(e) {}
+        throw new Error(errorMsg);
+      }
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Webhook error");
