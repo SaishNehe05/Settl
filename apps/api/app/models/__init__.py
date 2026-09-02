@@ -12,6 +12,7 @@ from app.models.model_prediction import ModelPrediction
 from app.models.notification import Notification
 from app.models.webhook_event import WebhookEvent
 from app.models.promise import Promise
+from app.models.checkout_session import CheckoutSession
 
 __all__ = [
     "Base",
@@ -28,4 +29,5 @@ __all__ = [
     "Notification",
     "WebhookEvent",
     "Promise",
+    "CheckoutSession",
 ]

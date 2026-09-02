@@ -9,12 +9,29 @@ import app.models  # Ensure all models are registered
 if settings.sqlalchemy_database_url.startswith("sqlite"):
     Base.metadata.create_all(bind=engine)
 
+import asyncio
+from contextlib import asynccontextmanager
+from app.services.abandonment_worker import abandonment_worker_loop
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    task = asyncio.create_task(abandonment_worker_loop())
+    yield
+    # Shutdown
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="Autonomous AI Revenue Recovery Agent API — Track 03 Razorpay Buildathon",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS configuration

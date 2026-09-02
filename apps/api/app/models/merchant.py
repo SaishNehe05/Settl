@@ -21,5 +21,6 @@ class Merchant(Base):
     revenue_events = relationship("RevenueEvent", back_populates="merchant", cascade="all, delete-orphan")
     recovery_cases = relationship("RecoveryCase", back_populates="merchant", cascade="all, delete-orphan")
     policy = relationship("Policy", back_populates="merchant", uselist=False, cascade="all, delete-orphan")
+    checkout_sessions = relationship("CheckoutSession", back_populates="merchant", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="merchant", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="merchant", cascade="all, delete-orphan")
