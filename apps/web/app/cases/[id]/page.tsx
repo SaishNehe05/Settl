@@ -24,7 +24,7 @@ interface CaseDetailPageProps {
 
 export const revalidate = 0;
 
-const formatAction = (action: string | null) => {
+const formatAction = (action: string | null | undefined) => {
   if (!action) return null;
   const map: Record<string, string> = {
     "CREATE_PAYMENT_LINK": "Send Recovery Payment Link",
@@ -37,7 +37,7 @@ const formatAction = (action: string | null) => {
   return map[action] || action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
 
-const formatRootCause = (cause: string | null) => {
+const formatRootCause = (cause: string | null | undefined) => {
   if (!cause) return "Not yet executed";
   const match = cause.match(/^\[(.*?)\] (.*)$/);
   if (match) {
