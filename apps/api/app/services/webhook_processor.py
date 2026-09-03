@@ -66,6 +66,7 @@ def process_webhook(webhook_id: str) -> None:
                 db.commit()
         except Exception:
             db.rollback()
+        logger.error(f"EVENT PROCESSING FAILED\nevent_id={wh.external_event_id if 'wh' in locals() and wh else 'unknown'}\nerror={str(e)}", exc_info=True)
     finally:
         db.close()
 
@@ -86,6 +87,9 @@ def _process_webhook_internal(db: Session, wh: WebhookEvent) -> None:
         # 1. Normalize the payload
         normalized = normalize_webhook_payload(wh.payload)
         wh.settl_event_type = normalized.settl_event_type
+        
+        logger.info(f"EVENT PROCESSING START\nevent_id={wh.external_event_id}\nevent_type={normalized.settl_event_type}")
+        logger.info(f"EVENT NORMALIZED\nprovider_event={wh.event_type}\nsettl_event={normalized.settl_event_type}")
 
         # 2. Resolve merchant
         merchant_id = _resolve_merchant(db, normalized)
@@ -112,6 +116,8 @@ def _process_webhook_internal(db: Session, wh: WebhookEvent) -> None:
             wh.status = "IGNORED"
             wh.processed_at = datetime.now(timezone.utc)
             db.commit()
+
+        logger.info(f"EVENT PROCESSING COMPLETE")
 
     except Exception as e:
         db.rollback()
@@ -165,7 +171,7 @@ def _resolve_customer(
             .first()
         )
         if customer:
-            logger.info(f"Matched existing customer {customer.id} by email")
+            logger.info(f"CUSTOMER LOOKUP: FOUND\nCUSTOMER STATUS: EXISTING")
             return customer
 
     # Try phone match
@@ -179,7 +185,7 @@ def _resolve_customer(
             .first()
         )
         if customer:
-            logger.info(f"Matched existing customer {customer.id} by phone")
+            logger.info(f"CUSTOMER LOOKUP: FOUND\nCUSTOMER STATUS: EXISTING")
             return customer
 
     # Create new customer — no fake history
@@ -201,7 +207,7 @@ def _resolve_customer(
     )
     db.add(customer)
     db.flush()
-    logger.info(f"Created new customer {customer.id} from webhook (no prior history)")
+    logger.info(f"CUSTOMER LOOKUP: NEW\nCUSTOMER STATUS: NEW")
     return customer
 
 
@@ -231,8 +237,9 @@ def _handle_revenue_loss(
             wh.processed_at = datetime.now(timezone.utc)
             wh.processing_error = f"RevenueEvent already exists for payment {normalized.payment_id}"
             db.commit()
-            logger.info(f"Webhook {wh.id}: duplicate payment_id {normalized.payment_id}, skipping")
+            logger.info(f"RECOVERY CASE SKIPPED: EXISTING CASE\ncase_id=payment_duplicate_{normalized.payment_id}")
             return
+        logger.info("PAYMENT LOOKUP: NEW")
 
     # Resolve customer
     customer = _resolve_customer(db, merchant_id, normalized)
@@ -276,7 +283,7 @@ def _handle_revenue_loss(
             wh.processed_at = datetime.now(timezone.utc)
             wh.processing_error = f"Active case {existing_case.id} already exists for billing cycle"
             db.commit()
-            logger.info(f"Webhook {wh.id}: active case already exists for subscription billing cycle, skipping case creation")
+            logger.info(f"RECOVERY CASE SKIPPED: EXISTING CASE\ncase_id={existing_case.id}")
             return
 
     # Amount: use normalized value, fall back to 0 (downstream should handle)
@@ -306,18 +313,15 @@ def _handle_revenue_loss(
     db.flush()
 
     # Create RecoveryCase (NEW state)
+    logger.info("RECOVERY CASE CREATION START")
     case = create_case_for_event(db, revenue_event)
+    logger.info(f"RECOVERY CASE CREATED\ncase_id={case.id}")
 
     # Update webhook with downstream references
     wh.settl_event_id = revenue_event.id
     wh.status = "PROCESSED"
     wh.processed_at = datetime.now(timezone.utc)
     db.commit()
-
-    logger.info(
-        f"Webhook {wh.id} → RevenueEvent {revenue_event.id} → RecoveryCase {case.id} "
-        f"(type={internal_event_type}, amount=₹{amount/100:.2f})"
-    )
 
     # AUTO-PIPELINE: Run full recovery pipeline (AI → Policy → Execute)
     # This is the critical integration that makes Case 1 fully automated.

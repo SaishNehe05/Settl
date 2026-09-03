@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settl Demo Store</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Razorpay Checkout Script -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <div class="background-effects">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <main class="container">
+        <header>
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="url(#paint0_linear)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="url(#paint1_linear)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="url(#paint2_linear)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="paint0_linear" x1="2" y1="7" x2="22" y2="7" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#3b82f6"/>
+                            <stop offset="1" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                        <linearGradient id="paint1_linear" x1="2" y1="19.5" x2="22" y2="19.5" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#3b82f6"/>
+                            <stop offset="1" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                        <linearGradient id="paint2_linear" x1="2" y1="14.5" x2="22" y2="14.5" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#3b82f6"/>
+                            <stop offset="1" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>Demo Store</span>
+            </div>
+            <nav>
+                <a href="#">Products</a>
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+            </nav>
+        </header>
+
+        <section class="hero">
+            <h1>Upgrade Your Workflow</h1>
+            <p>Experience the ultimate productivity boost with our premium plan. Test the Razorpay checkout and recovery flow seamlessly.</p>
+        </section>
+
+        <section class="product-showcase">
+            <div class="product-card glass-panel">
+                <div class="card-header">
+                    <span class="badge">Most Popular</span>
+                    <h2>Premium Subscription</h2>
+                </div>
+                
+                <div class="price-container">
+                    <span class="currency">₹</span>
+                    <span class="amount">8,499</span>
+                    <span class="period">/year</span>
+                </div>
+                
+                <ul class="features">
+                    <li><i class="icon-check">✓</i> Unlimited API calls</li>
+                    <li><i class="icon-check">✓</i> Advanced Analytics</li>
+                    <li><i class="icon-check">✓</i> 24/7 Priority Support</li>
+                    <li><i class="icon-check">✓</i> AI Revenue Recovery</li>
+                </ul>
+
+                <button id="buy-button" class="btn-primary">
+                    <span class="btn-text">Subscribe Now</span>
+                    <span class="btn-loader hidden"></span>
+                </button>
+            </div>
+        </section>
+
+        <div id="toast-container" class="toast-container"></div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

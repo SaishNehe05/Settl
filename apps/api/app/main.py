@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.api.v1.router import api_v1_router
 from app.database import engine, Base, SessionLocal
 import app.models  # Ensure all models are registered
+import os
 
 # Ensure tables exist (Alembic manages migrations)
 if settings.sqlalchemy_database_url.startswith("sqlite"):
@@ -72,3 +74,8 @@ def health_check():
 
 # Mount API routers
 app.include_router(api_v1_router, prefix=settings.API_V1_STR)
+
+# Mount Demo Store frontend
+demo_store_path = os.path.join(os.path.dirname(__file__), "../../demo-store")
+if os.path.exists(demo_store_path):
+    app.mount("/demo", StaticFiles(directory=demo_store_path, html=True), name="demo")

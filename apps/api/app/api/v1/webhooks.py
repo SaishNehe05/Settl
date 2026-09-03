@@ -71,11 +71,12 @@ async def handle_razorpay_webhook(
 
     is_valid = verify_razorpay_webhook_signature(raw_body, x_razorpay_signature)
     if not is_valid:
-        logger.warning("Webhook rejected: invalid signature")
+        logger.warning("WEBHOOK SIGNATURE: INVALID")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid webhook signature",
         )
+    logger.info("WEBHOOK SIGNATURE: VALID")
 
     # ── 3. Parse JSON payload ────────────────────────────────────────
     try:
@@ -101,13 +102,17 @@ async def handle_razorpay_webhook(
         )
         .first()
     )
+    
+    logger.info(f"RAZORPAY WEBHOOK RECEIVED\nevent={razorpay_event_type}\nexternal_event_id={external_event_id}")
+
     if existing_wh:
-        logger.info(f"Webhook duplicate detected: {external_event_id} (status={existing_wh.status})")
+        logger.info(f"EVENT DEDUPLICATION:\nDUPLICATE\nexisting_event_id={external_event_id}")
         return {
             "status": "already_processed",
             "event_id": external_event_id,
             "webhook_id": existing_wh.id,
         }
+    logger.info("EVENT DEDUPLICATION:\nNEW")
 
     # ── 5. Classify event ────────────────────────────────────────────
     settl_event_type = classify_event(razorpay_event_type)
@@ -129,21 +134,22 @@ async def handle_razorpay_webhook(
         db.add(wh)
         db.commit()
         db.refresh(wh)
-    except IntegrityError:
+        logger.info(f"WEBHOOK EVENT PERSISTED\nexternal_event_id={external_event_id}")
+    except IntegrityError as e:
         # Race condition: another request persisted the same event between our check and insert
         db.rollback()
-        logger.info(f"Webhook duplicate (race condition): {external_event_id}")
+        logger.error(f"WEBHOOK EVENT PERSISTENCE FAILED (IntegrityError): {e}")
         return {
             "status": "already_processed",
             "event_id": external_event_id,
         }
-
-    logger.info(
-        f"Webhook received: id={wh.id} provider_event={external_event_id} "
-        f"type={razorpay_event_type} settl_type={settl_event_type}"
-    )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"WEBHOOK EVENT PERSISTENCE FAILED: {e}")
+        raise
 
     # ── 7. Queue background processing ───────────────────────────────
+    logger.info(f"EVENT QUEUED\nevent_id={external_event_id}")
     background_tasks.add_task(process_webhook, wh.id)
 
     # ── 8. Return fast response ──────────────────────────────────────

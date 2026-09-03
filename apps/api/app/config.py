@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "gpt-4o-mini"
 
     # CORS
-    CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://127.0.0.1:3000"
+    CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://127.0.0.1:3000,null,http://localhost:8000"
 
     @property
     def cors_origins_list(self) -> List[str]:
