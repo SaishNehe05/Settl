@@ -25,7 +25,15 @@ def create_demo_order(req: CreateOrderRequest, db: Session = Depends(get_db)):
         )
 
     # Fetch a real merchant to map the webhook to the correct tenant
-    merchant = db.query(Merchant).order_by(Merchant.created_at.desc()).first()
+    # Prioritize user-created merchants over the seeded demo merchant
+    merchant = (
+        db.query(Merchant)
+        .filter(Merchant.id != "MER_DEMO_01")
+        .order_by(Merchant.created_at.desc())
+        .first()
+    )
+    if not merchant:
+        merchant = db.query(Merchant).first()
     if not merchant:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
