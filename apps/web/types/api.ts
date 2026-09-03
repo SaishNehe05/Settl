@@ -66,6 +66,10 @@ export interface ModelPrediction {
 
 export interface RecoveryCaseDetail extends RecoveryCaseItem {
   resolved_at?: string;
+  payment_link_id?: string;
+  payment_link_url?: string;
+  notification_status?: string;
+  payment_id?: string;
   customer?: Customer;
   event_type?: string;
   failure_reason?: string;

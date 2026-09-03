@@ -96,11 +96,17 @@ class RecoveryCaseDetail(BaseModel):
     updated_at: datetime
     resolved_at: Optional[datetime] = None
     
+    # Payment link details (extracted from latest CREATE_PAYMENT_LINK action)
+    payment_link_id: Optional[str] = None
+    payment_link_url: Optional[str] = None
+    notification_status: Optional[str] = None
+    
     # Nested context
     customer: Optional[CustomerResponse] = None
     event_type: Optional[str] = None
     failure_reason: Optional[str] = None
     source: Optional[str] = None
+    payment_id: Optional[str] = None
     actions: List[RecoveryActionResponse] = []
     audit_logs: List[AuditLogResponse] = []
     latest_prediction: Optional[ModelPredictionResponse] = None

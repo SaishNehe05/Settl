@@ -16,7 +16,7 @@ from typing import Optional, Tuple
 
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
+import app.database as app_db
 from app.models.webhook_event import WebhookEvent
 from app.models.revenue_event import RevenueEvent
 from app.models.recovery_case import RecoveryCase
@@ -42,7 +42,7 @@ def process_webhook(webhook_id: str) -> None:
     Takes a WebhookEvent.id, processes it, and updates its status.
     Uses its own DB session (for use outside of the HTTP request lifecycle).
     """
-    db = SessionLocal()
+    db = app_db.SessionLocal()
     try:
         wh = db.query(WebhookEvent).filter(WebhookEvent.id == webhook_id).first()
         if not wh:
@@ -213,9 +213,27 @@ def _handle_revenue_loss(
 ) -> None:
     """
     Handles revenue-loss events (payment.failed, subscription.pending/halted).
-    Creates Customer + RevenueEvent + RecoveryCase (in NEW state only).
-    Does NOT run AI/policy/execution.
+    Creates Customer + RevenueEvent + RecoveryCase, then auto-runs the
+    full recovery pipeline (AI → Policy → Execute) in the background.
     """
+    # Payment-ID level idempotency: prevent duplicate cases for the same Razorpay payment
+    if normalized.payment_id:
+        existing_event = (
+            db.query(RevenueEvent)
+            .filter(
+                RevenueEvent.payment_id == normalized.payment_id,
+                RevenueEvent.merchant_id == merchant_id,
+            )
+            .first()
+        )
+        if existing_event:
+            wh.status = "PROCESSED"
+            wh.processed_at = datetime.now(timezone.utc)
+            wh.processing_error = f"RevenueEvent already exists for payment {normalized.payment_id}"
+            db.commit()
+            logger.info(f"Webhook {wh.id}: duplicate payment_id {normalized.payment_id}, skipping")
+            return
+
     # Resolve customer
     customer = _resolve_customer(db, merchant_id, normalized)
 
@@ -287,7 +305,7 @@ def _handle_revenue_loss(
     db.add(revenue_event)
     db.flush()
 
-    # Create RecoveryCase (NEW state only — no AI/policy)
+    # Create RecoveryCase (NEW state)
     case = create_case_for_event(db, revenue_event)
 
     # Update webhook with downstream references
@@ -300,6 +318,25 @@ def _handle_revenue_loss(
         f"Webhook {wh.id} → RevenueEvent {revenue_event.id} → RecoveryCase {case.id} "
         f"(type={internal_event_type}, amount=₹{amount/100:.2f})"
     )
+
+    # AUTO-PIPELINE: Run full recovery pipeline (AI → Policy → Execute)
+    # This is the critical integration that makes Case 1 fully automated.
+    # If the pipeline fails, the case remains in NEW/ANALYZING state and
+    # can be retried manually via the dashboard or by the webhook worker.
+    try:
+        from app.services.recovery_service import execute_case_pipeline
+        case = execute_case_pipeline(db, case.id)
+        logger.info(
+            f"Auto-pipeline completed: case {case.id} → {case.status} "
+            f"(action={case.actual_action})"
+        )
+    except Exception as pipeline_err:
+        logger.error(
+            f"Auto-pipeline failed for case {case.id}: {pipeline_err}",
+            exc_info=True,
+        )
+        # Case remains in its current state — can be retried manually
+
 
 
 def _handle_recovery_verification(

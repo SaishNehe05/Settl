@@ -107,7 +107,22 @@ def create_recovery_payment_link(
         "reference_id": reference_id,
     }
 
-    response = client.payment_link.create(payload)
+    try:
+        response = client.payment_link.create(payload)
+    except Exception as api_err:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Razorpay API error creating payment link for case {case.id}: {api_err}")
+        # Return a pending status so the caller can record ACTION_PENDING
+        # and avoid creating a duplicate link on retry
+        return {
+            "id": None,
+            "short_url": None,
+            "amount": case.amount_at_risk_paise,
+            "status": "ACTION_PENDING",
+            "reference_id": reference_id,
+            "error": str(api_err),
+        }
     return response
 
 

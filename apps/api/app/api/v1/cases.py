@@ -140,6 +140,36 @@ def get_recovery_case(
     )
     latest_pred_resp = ModelPredictionResponse.model_validate(pred) if pred else None
 
+    # Extract payment link details from the latest CREATE_PAYMENT_LINK action
+    plink_action = next(
+        (a for a in c.recovery_actions
+         if a.action_type == "CREATE_PAYMENT_LINK" and a.razorpay_entity_id),
+        None
+    )
+    payment_link_id = plink_action.razorpay_entity_id if plink_action else None
+    payment_link_url = None
+    notification_status = None
+    if plink_action and plink_action.response_payload:
+        payment_link_url = plink_action.response_payload.get("short_url")
+    if payment_link_id and not payment_link_url:
+        payment_link_url = f"https://rzp.io/i/{payment_link_id}"
+
+    # Get notification status for this case
+    from app.models.notification import Notification
+    latest_notif = (
+        db.query(Notification)
+        .filter(Notification.case_id == c.id)
+        .order_by(Notification.created_at.desc())
+        .first()
+    )
+    if latest_notif:
+        notification_status = latest_notif.status
+
+    # Extract payment_id from revenue event
+    payment_id_val = None
+    if c.revenue_event:
+        payment_id_val = getattr(c.revenue_event, 'payment_id', None)
+
     return RecoveryCaseDetail(
         id=c.id,
         merchant_id=c.merchant_id,
@@ -157,10 +187,14 @@ def get_recovery_case(
         created_at=c.created_at,
         updated_at=c.updated_at,
         resolved_at=c.resolved_at,
+        payment_link_id=payment_link_id,
+        payment_link_url=payment_link_url,
+        notification_status=notification_status,
         customer=customer_resp,
         event_type=event_type,
         failure_reason=failure_reason,
         source=source,
+        payment_id=payment_id_val,
         actions=actions,
         audit_logs=audit_logs,
         latest_prediction=latest_pred_resp,

@@ -267,25 +267,40 @@ def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Di
         response_payload = link_response
         razorpay_entity_id = link_response.get("id")
         reference_id = link_response.get("reference_id")
-        audit_event = "PAYMENT_LINK_ISSUED"
-        audit_reason = f"Generated Razorpay Payment Link {razorpay_entity_id} for ₹{case.amount_at_risk_paise/100:,.2f}."
-        next_case_status = "WAITING_RESULT"
-        
-        # Persist notification since Razorpay is configured to send sms and email
-        from app.models.notification import Notification
-        notif = Notification(
-            merchant_id=case.merchant_id,
-            case_id=case.id,
-            channel="EMAIL_SMS",
-            provider="razorpay",
-            message_type="PAYMENT_LINK",
-            recipient=customer.email if customer else "unknown",
-            content=f"Razorpay Payment Link: https://rzp.io/i/{razorpay_entity_id}",
-            status="PENDING", # Notification state managed by Razorpay
-            provider_reference=razorpay_entity_id,
-            sent_at=datetime.now(timezone.utc)
-        )
-        db.add(notif)
+
+        # Handle Razorpay API failure (ACTION_PENDING)
+        if link_response.get("status") == "ACTION_PENDING":
+            audit_event = "PAYMENT_LINK_FAILED"
+            audit_reason = f"Razorpay API call failed: {link_response.get('error', 'unknown')}. Will retry."
+            next_case_status = "APPROVED"  # Stay in APPROVED so it can be retried
+            # Decrement attempt count since this wasn't a real attempt
+            case.attempt_count = max(0, case.attempt_count - 1)
+        elif link_response.get("idempotent_hit"):
+            # Existing active link reused — no new notification needed
+            audit_event = "PAYMENT_LINK_REUSED"
+            audit_reason = f"Reused existing Razorpay Payment Link {razorpay_entity_id} for ₹{case.amount_at_risk_paise/100:,.2f}."
+            next_case_status = "WAITING_RESULT"
+        else:
+            audit_event = "PAYMENT_LINK_ISSUED"
+            audit_reason = f"Generated Razorpay Payment Link {razorpay_entity_id} for ₹{case.amount_at_risk_paise/100:,.2f}."
+            next_case_status = "WAITING_RESULT"
+            
+            # Persist notification since Razorpay is configured to send sms and email
+            short_url = link_response.get("short_url", f"https://rzp.io/i/{razorpay_entity_id}")
+            from app.models.notification import Notification
+            notif = Notification(
+                merchant_id=case.merchant_id,
+                case_id=case.id,
+                channel="EMAIL_SMS",
+                provider="razorpay",
+                message_type="PAYMENT_LINK",
+                recipient=customer.email if customer else "unknown",
+                content=f"Razorpay Payment Link: {short_url}",
+                status="PENDING",  # Notification state managed by Razorpay
+                provider_reference=razorpay_entity_id,
+                sent_at=datetime.now(timezone.utc)
+            )
+            db.add(notif)
         
     elif action_type in ["SEND_REMINDER", "SEND_FOLLOW_UP", "SEND_PAYMENT_LINK", "CUSTOMER_ACTION_REQUIRED"]:
         response_payload = {"status": "sent", "channel": "email", "recipient": customer.email if customer else "unknown"}
@@ -328,10 +343,14 @@ def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Di
         next_case_status = "EXECUTED"
 
     # Step 3: Record RecoveryAction
+    action_status = "SUCCESS"
+    if response_payload.get("status") == "ACTION_PENDING":
+        action_status = "PENDING"
+    
     action = RecoveryAction(
         case_id=case.id,
         action_type=action_type,
-        status="SUCCESS",
+        status=action_status,
         razorpay_entity_id=razorpay_entity_id,
         reference_id=reference_id,
         policy_result="ALLOW",

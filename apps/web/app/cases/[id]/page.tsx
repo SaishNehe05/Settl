@@ -161,42 +161,72 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
 
       {/* Phase 4: Active Razorpay Payment Link Card */}
       {(() => {
-        const activeAction = caseDetail.actions?.find(
-          (a) => a.action_type === "CREATE_PAYMENT_LINK" && a.razorpay_entity_id
-        );
-        if (!activeAction && caseDetail.status !== "WAITING_RESULT") return null;
+        const plinkId = caseDetail.payment_link_id;
+        const shortUrl = caseDetail.payment_link_url;
+        const notifStatus = caseDetail.notification_status;
+        const paymentId = caseDetail.payment_id;
 
-        const plinkId = activeAction?.razorpay_entity_id || "plink_test";
-        const shortUrl = activeAction?.response_payload?.short_url || `https://rzp.io/i/${plinkId}`;
+        if (!plinkId && caseDetail.status !== "WAITING_RESULT") return null;
 
         return (
-          <div className="rounded-xl border border-sky-600/40 bg-sky-950/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-sky-500/10 p-2 border border-sky-500/30 text-sky-400">
-                <ExternalLink className="h-5 w-5" />
+          <div className="rounded-xl border border-sky-600/40 bg-sky-950/30 p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-sky-500/10 p-2 border border-sky-500/30 text-sky-400">
+                  <ExternalLink className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-white">Active Razorpay Payment Link</span>
+                    <span className="rounded bg-sky-500/20 text-sky-300 text-[10px] font-mono px-2 py-0.5">
+                      TEST MODE
+                    </span>
+                  </div>
+                  {shortUrl && (
+                    <div className="text-xs font-mono text-sky-300 mt-1 select-all hover:underline">
+                      {shortUrl}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-white">Active Razorpay Payment Link</span>
-                  <span className="rounded bg-sky-500/20 text-sky-300 text-[10px] font-mono px-2 py-0.5">
-                    TEST MODE
-                  </span>
-                </div>
-                <div className="text-xs font-mono text-sky-300 mt-1 select-all hover:underline">
-                  {shortUrl}
-                </div>
+              <div className="flex items-center gap-2">
+                {shortUrl && (
+                  <a
+                    href={shortUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-sky-600/60 bg-sky-900/40 px-3 py-1.5 text-xs font-medium text-sky-200 hover:bg-sky-800/60 transition-colors"
+                  >
+                    Open Link
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <a
-                href={shortUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-600/60 bg-sky-900/40 px-3 py-1.5 text-xs font-medium text-sky-200 hover:bg-sky-800/60 transition-colors"
-              >
-                Open Link
-                <ExternalLink className="h-3 w-3" />
-              </a>
+            {/* Detail rows */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-sky-800/40 text-[11px]">
+              {plinkId && (
+                <div>
+                  <div className="text-slate-500">Payment Link ID</div>
+                  <div className="font-mono text-slate-300 mt-0.5 truncate">{plinkId}</div>
+                </div>
+              )}
+              {paymentId && (
+                <div>
+                  <div className="text-slate-500">Original Payment ID</div>
+                  <div className="font-mono text-slate-300 mt-0.5 truncate">{paymentId}</div>
+                </div>
+              )}
+              <div>
+                <div className="text-slate-500">Notification</div>
+                <div className={`font-mono font-medium mt-0.5 ${notifStatus === "SENT" || notifStatus === "DELIVERED" ? "text-emerald-400" : notifStatus === "FAILED" ? "text-rose-400" : "text-amber-400"}`}>
+                  {notifStatus || "SMS + Email"}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-500">Customer Contact</div>
+                <div className="text-slate-300 mt-0.5 truncate">{caseDetail.customer?.email || "—"}</div>
+              </div>
             </div>
           </div>
         );
