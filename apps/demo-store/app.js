@@ -64,8 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const customerEmail = document.getElementById('demo-email').value || 'alex.demo@example.com';
             const customerPhone = document.getElementById('demo-phone').value || '9999999999';
 
-            // 2. Initialize Razorpay Checkout
-            const options = {
+            const rzpOptions = {
                 "key": data.key_id,
                 "amount": data.amount,
                 "currency": data.currency,
@@ -73,9 +72,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 "description": "Premium Subscription (Test Recovery Flow)",
                 "image": "https://avatars.githubusercontent.com/u/108253112?s=200&v=4", // placeholder logo
                 "order_id": data.order_id,
-                "handler": function (response){
+                "handler": async function (response){
                     // Payment succeeded
                     console.log("Success:", response);
+                    
+                    try {
+                        // Inform backend of PAYMENT_SUCCESS to prevent abandonment
+                        await fetch('/api/v1/checkout/events', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                event: 'PAYMENT_SUCCESS',
+                                checkout_session_id: data.order_id,
+                                amount_paise: checkoutAmountPaise,
+                                merchant_id: data.merchant_id
+                            })
+                        });
+                    } catch (e) {
+                        console.error("Failed to sync success event", e);
+                    }
+                    
                     showToast('Payment successful!', 'success');
                 },
                 "prefill": {
@@ -92,13 +108,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            const rzp1 = new Razorpay(options);
+            const rzp1 = new Razorpay(rzpOptions);
             
-            rzp1.on('payment.failed', function (response){
+            rzp1.on('payment.failed', async function (response){
                 // Payment failed - This triggers our webhook in the backend!
                 console.error("Payment failed:", response.error);
                 showToast(`Payment failed: ${response.error.description}. Recovery case should be created!`, 'error');
             });
+
+            // Sync CHECKOUT_STARTED to backend for abandonment tracking
+            try {
+                await fetch('/api/v1/checkout/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        event: 'CHECKOUT_STARTED',
+                        checkout_session_id: data.order_id,
+                        order_id: data.order_id,
+                        amount_paise: checkoutAmountPaise,
+                        merchant_id: data.merchant_id,
+                        customer_name: customerName,
+                        customer_email: customerEmail,
+                        customer_phone: customerPhone
+                    })
+                });
+            } catch (e) {
+                console.error("Failed to sync start event", e);
+            }
 
             rzp1.open();
         } catch (error) {

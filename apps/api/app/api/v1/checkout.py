@@ -11,6 +11,7 @@ from app.models.customer import Customer
 from app.models.checkout_session import CheckoutSession
 from app.models.base import generate_uuid
 from app.api.deps import get_current_merchant
+from app.config import settings
 
 router = APIRouter(prefix="/checkout", tags=["Checkout"])
 
@@ -23,6 +24,7 @@ class CheckoutEventRequest(BaseModel):
     customer_name: Optional[str] = None
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None
+    merchant_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
 @router.post("/events", status_code=status.HTTP_200_OK)
@@ -37,6 +39,12 @@ def ingest_checkout_event(
     """
     now = datetime.now(timezone.utc)
     
+    # Explicit merchant routing for Demo Store
+    if req.merchant_id:
+        current_merchant = db.query(Merchant).filter(Merchant.id == req.merchant_id).first()
+        if not current_merchant:
+            raise HTTPException(404, detail="Merchant not found")
+
     # 1. Resolve Customer
     customer = None
     if req.customer_id:
@@ -66,8 +74,8 @@ def ingest_checkout_event(
     ).first()
 
     if not chk_session:
-        # Configurable timeout (default 15 minutes)
-        timeout_minutes = 15
+        # Configurable timeout
+        timeout_minutes = settings.CHECKOUT_ABANDONMENT_MINUTES
         deadline = now + timedelta(minutes=timeout_minutes)
 
         chk_session = CheckoutSession(
@@ -86,7 +94,7 @@ def ingest_checkout_event(
         chk_session.last_activity_at = now
         # Refresh deadline (reset the timer since they are still active)
         if req.event in ["CHECKOUT_STARTED", "PAYMENT_ATTEMPTED"]:
-            chk_session.abandonment_deadline = now + timedelta(minutes=15)
+            chk_session.abandonment_deadline = now + timedelta(minutes=settings.CHECKOUT_ABANDONMENT_MINUTES)
 
     # 3. State Machine transitions
     if req.event == "PAYMENT_ATTEMPTED":
