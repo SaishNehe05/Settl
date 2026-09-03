@@ -420,65 +420,59 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             
             return (
               <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between py-2 border-b border-slate-800/60">
-                  <span className="text-slate-400 font-semibold">Policy Decision</span>
-                  <span className={`font-bold flex items-center gap-1.5 ${decision === "ALLOW" ? "text-emerald-400" : decision === "WAITING" ? "text-amber-400" : "text-rose-400"}`}>
-                    {decision === "ALLOW" ? <CheckCircle2 className="h-4 w-4" /> : null}
-                    {decision === "ALLOW" ? "Approved" : decision}
-                  </span>
-                </div>
-                
                 {policy && (
                   <>
                     <div className="flex flex-col py-2 border-b border-slate-800/60">
                       <span className="text-slate-400">Amount</span>
                       <div className="flex items-center gap-2 mt-0.5 text-slate-200">
                         {caseDetail.amount_at_risk_paise <= policy.max_automated_amount_paise ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                          <span className="text-emerald-400 font-bold">✓</span>
                         ) : (
-                          <span className="text-rose-400 font-bold px-1">X</span>
+                          <span className="text-rose-400 font-bold">X</span>
                         )}
-                        <span>Within automated limit (≤ {formatINR(policy.max_automated_amount_paise)})</span>
+                        <span>Within automated limit</span>
                       </div>
                     </div>
                     
                     <div className="flex flex-col py-2 border-b border-slate-800/60">
                       <span className="text-slate-400">Attempts</span>
                       <div className="flex items-center gap-2 mt-0.5 text-slate-200">
-                        {caseDetail.attempt_count <= policy.max_attempts ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        {caseDetail.attempt_count < policy.max_attempts ? (
+                          <span className="text-emerald-400 font-bold">✓</span>
                         ) : (
-                          <span className="text-rose-400 font-bold px-1">X</span>
+                          <span className="text-rose-400 font-bold">X</span>
                         )}
                         <span>{caseDetail.attempt_count} of {policy.max_attempts}</span>
                       </div>
                     </div>
 
                     <div className="flex flex-col py-2 border-b border-slate-800/60">
-                      <span className="text-slate-400">Minimum Probability</span>
-                      <div className="flex items-center gap-2 mt-0.5 text-slate-200">
-                        {caseDetail.recovery_probability >= policy.min_probability ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                        ) : (
-                          <span className="text-rose-400 font-bold px-1">X</span>
-                        )}
-                        <span>Meets {formatPercent(policy.min_probability)} threshold</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col py-2 border-b border-slate-800/60">
-                      <span className="text-slate-400">Customer Consent</span>
+                      <span className="text-slate-400">Customer consent</span>
                       <div className="flex items-center gap-2 mt-0.5 text-slate-200">
                         {(!caseDetail.customer || !caseDetail.customer.opted_out) ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                          <span className="text-emerald-400 font-bold">✓</span>
                         ) : (
-                          <span className="text-rose-400 font-bold px-1">X</span>
+                          <span className="text-rose-400 font-bold">X</span>
                         )}
                         <span>Contact allowed</span>
                       </div>
                     </div>
                   </>
                 )}
+
+                <div className="flex flex-col py-2 pt-4">
+                  <span className="text-slate-400">Policy decision</span>
+                  <div className="flex items-center gap-2 mt-0.5 text-slate-200">
+                    {decision === "ALLOW" ? (
+                      <span className="text-emerald-400 font-bold">✓</span>
+                    ) : (
+                      <span className="text-rose-400 font-bold">X</span>
+                    )}
+                    <span className={`font-semibold ${decision === "ALLOW" ? "text-emerald-400" : decision === "WAITING" ? "text-amber-400" : "text-rose-400"}`}>
+                      {decision === "ALLOW" ? "Approved" : decision}
+                    </span>
+                  </div>
+                </div>
               </div>
             );
           })()}
