@@ -50,9 +50,14 @@ const formatRootCause = (cause: string | null | undefined) => {
     if (category === "FRAUD_SUSPICION") readableCategory = "Suspected fraud / Risk blocked";
     return (
       <>
-        <div className="font-semibold text-slate-200 mb-1">{readableCategory}</div>
-        <div className="text-slate-400 text-[11px] leading-relaxed">{desc}</div>
-        <div className="text-slate-600 text-[9px] font-mono mt-2 pt-2 border-t border-slate-800">Internal code: {category}</div>
+        <div className="font-semibold text-slate-200">{readableCategory}</div>
+        <details className="mt-2 text-[10px] text-slate-500 cursor-pointer">
+          <summary className="hover:text-slate-400 select-none">View technical details</summary>
+          <div className="mt-1.5 p-2 bg-slate-950/50 rounded border border-slate-800/50">
+            <div>{desc}</div>
+            <div className="font-mono mt-1 text-[9px]">Code: {category}</div>
+          </div>
+        </details>
       </>
     );
   }
@@ -375,34 +380,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
               </div>
             </div>
 
-            {/* Structured Evidence Tags */}
-            {(() => {
-              let aiMeta: any = null;
-              try {
-                if (caseDetail.latest_prediction?.reason) {
-                  aiMeta = JSON.parse(caseDetail.latest_prediction.reason);
-                }
-              } catch {}
-
-              if (aiMeta?.evidence && aiMeta.evidence.length > 0) {
-                return (
-                  <div>
-                    <div className="text-slate-500 mb-1.5">Grounded Evidence</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {aiMeta.evidence.map((ev: string, i: number) => (
-                        <span
-                          key={i}
-                          className="rounded bg-slate-800/80 border border-slate-700/60 px-2 py-0.5 text-[11px] text-slate-300"
-                        >
-                          {ev}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
+            {/* Structured Evidence Tags removed to reduce text density */}
 
             <div>
               <div className="text-slate-500">Decision Agent Recommendation</div>
@@ -514,11 +492,6 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
                     </div>
                   </>
                 )}
-                
-                <div className="mt-3 rounded-lg bg-slate-950 p-3 border border-slate-800 text-[11px]">
-                  <div className="text-slate-500 mb-1">Why Settl Acted:</div>
-                  <div className="text-slate-300 font-sans leading-relaxed">{explanation}</div>
-                </div>
               </div>
             );
           })()}
