@@ -60,6 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             
+            const customerName = document.getElementById('demo-name').value || 'Alex Demo';
+            const customerEmail = document.getElementById('demo-email').value || 'alex.demo@example.com';
+            const customerPhone = document.getElementById('demo-phone').value || '9999999999';
+
             // 2. Initialize Razorpay Checkout
             const options = {
                 "key": data.key_id,
@@ -75,9 +79,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast('Payment successful!', 'success');
                 },
                 "prefill": {
-                    "name": "Alex Demo",
-                    "email": "alex.demo@example.com",
-                    "contact": "9999999999"
+                    "name": customerName,
+                    "email": customerEmail,
+                    "contact": customerPhone
                 },
                 "notes": {
                     "settl_merchant_id": data.merchant_id,

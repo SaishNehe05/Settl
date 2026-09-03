@@ -10,9 +10,10 @@ import {
   Lock, 
   ShieldCheck, 
   UserCheck, 
-  Zap 
+  Zap,
+  Info
 } from "lucide-react";
-import { fetchCaseDetail } from "@/lib/api";
+import { fetchCaseDetail, fetchPolicy } from "@/lib/api";
 import { formatINR, formatPercent, formatDate } from "@/lib/utils";
 import StatusBadge from "@/components/cases/status-badge";
 import CaseActions from "@/components/cases/case-actions";
@@ -26,6 +27,7 @@ export const revalidate = 0;
 export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   const { id } = await params;
   const caseDetail = await fetchCaseDetail(id);
+  const policy = await fetchPolicy().catch(() => null);
 
   if (!caseDetail) {
     notFound();
@@ -69,7 +71,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
           Back to Recovery Queue
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold tracking-tight text-white font-mono">{caseDetail.id}</h1>
             <StatusBadge status={caseDetail.status} />
             <span className="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-300 font-medium">
@@ -220,17 +222,36 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
               <div>
                 <div className="text-slate-500">Notification</div>
                 <div className={`font-mono font-medium mt-0.5 ${notifStatus === "SENT" || notifStatus === "DELIVERED" ? "text-emerald-400" : notifStatus === "FAILED" ? "text-rose-400" : "text-amber-400"}`}>
-                  {notifStatus || "SMS + Email"}
+                  {notifStatus || "Not yet executed"}
                 </div>
               </div>
               <div>
                 <div className="text-slate-500">Customer Contact</div>
-                <div className="text-slate-300 mt-0.5 truncate">{caseDetail.customer?.email || "—"}</div>
+                <div className="text-slate-300 mt-0.5 truncate">{caseDetail.customer?.email || "Not available"}</div>
               </div>
             </div>
           </div>
         );
       })()}
+      
+      {/* What Happens Next */}
+      <div className="rounded-xl border border-indigo-500/20 bg-indigo-950/20 p-5 backdrop-blur-sm space-y-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-indigo-400 flex items-center gap-2">
+          <Info className="h-4 w-4" /> What Happens Next
+        </h3>
+        <p className="text-sm text-slate-300 leading-relaxed font-medium">
+          {(() => {
+            if (caseDetail.status === "WAITING_RESULT") return "Waiting for customer payment. A valid Razorpay Payment Link is active.";
+            if (caseDetail.status === "RECOVERED") return "Payment confirmed and recovery verified.";
+            if (caseDetail.status === "ESCALATED") return "Needs merchant review to proceed.";
+            if (caseDetail.status === "BLOCKED" || caseDetail.status === "STOPPED") return "Recovery stopped. No further automated attempts are allowed.";
+            if (caseDetail.status === "NEW" || caseDetail.status === "ANALYZING") return "Analyzing failure event to determine the best recovery action.";
+            if (caseDetail.status === "APPROVED") return "Authorized to execute recovery action.";
+            if (caseDetail.attempt_count >= (policy?.max_attempts || 0) && caseDetail.status !== "WAITING_RESULT") return "Maximum automated attempts reached.";
+            return "Pending evaluation.";
+          })()}
+        </p>
+      </div>
 
       {/* Grid: Case Details & Intelligence */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -244,37 +265,41 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             <div>
               <div className="text-slate-500">Customer Name</div>
               <div className="font-semibold text-slate-200 text-sm mt-0.5">
-                {caseDetail.customer?.name || caseDetail.customer_name || "Demo Customer"}
+                {caseDetail.customer?.name || caseDetail.customer_name || "Not available"}
               </div>
             </div>
             <div>
               <div className="text-slate-500">Contact</div>
               <div className="text-slate-300 font-mono mt-0.5">
-                {caseDetail.customer?.email || caseDetail.customer_email || "demo@example.com"}
+                {caseDetail.customer?.email || caseDetail.customer_email || "Not available"}
               </div>
               <div className="text-slate-400 font-mono mt-0.5">
-                {caseDetail.customer?.phone || "+91 98765 43210"}
+                {caseDetail.customer?.phone || "Not available"}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
               <div>
                 <div className="text-slate-500">Payment Success Rate</div>
-                <div className="font-semibold text-emerald-400 text-sm mt-0.5">
-                  {formatPercent(caseDetail.customer?.success_rate ?? 0.95)}
+                <div className={`font-semibold text-sm mt-0.5 ${caseDetail.customer?.success_rate != null ? 'text-emerald-400' : 'text-slate-500 font-normal italic'}`}>
+                  {caseDetail.customer?.success_rate != null ? formatPercent(caseDetail.customer.success_rate) : "Limited history"}
                 </div>
               </div>
               <div>
                 <div className="text-slate-500">Customer Tier</div>
-                <div className="font-semibold text-purple-400 text-sm mt-0.5">
-                  {caseDetail.customer?.customer_value || "HIGH"}
+                <div className={`font-semibold text-sm mt-0.5 ${caseDetail.customer?.customer_value ? 'text-purple-400' : 'text-slate-500 font-normal italic'}`}>
+                  {caseDetail.customer?.customer_value || "No previous history"}
                 </div>
               </div>
             </div>
             <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
               <span className="text-slate-500">Communication Opt-Out</span>
-              <span className={`font-medium ${caseDetail.customer?.opted_out ? "text-rose-400" : "text-emerald-400"}`}>
-                {caseDetail.customer?.opted_out ? "Opted Out" : "Consent Active"}
-              </span>
+              {caseDetail.customer ? (
+                <span className={`font-medium ${caseDetail.customer.opted_out ? "text-rose-400" : "text-emerald-400"}`}>
+                  {caseDetail.customer.opted_out ? "Opted Out" : "Consent Active"}
+                </span>
+              ) : (
+                <span className="font-medium text-slate-500 italic">Not available</span>
+              )}
             </div>
           </div>
         </div>
@@ -295,19 +320,23 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
           <div className="space-y-3 text-xs">
             <div>
               <div className="text-slate-500">Estimated Recovery Probability</div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xl font-bold text-sky-400 font-mono">
-                  {formatPercent(caseDetail.recovery_probability)}
-                </span>
-                <span className="text-[11px] text-slate-400">
-                  (Calibrated Risk Model)
-                </span>
-              </div>
+              {caseDetail.recovery_probability > 0 ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xl font-bold text-sky-400 font-mono">
+                    {formatPercent(caseDetail.recovery_probability)}
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    (Calibrated Risk Model)
+                  </span>
+                </div>
+              ) : (
+                <div className="text-slate-400 italic mt-1">Not available</div>
+              )}
             </div>
             <div>
               <div className="text-slate-500">Diagnostic Root Cause</div>
-              <div className="text-slate-200 mt-1 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 font-sans leading-relaxed">
-                {caseDetail.root_cause || "Analyzing event..."}
+              <div className={`mt-1 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 font-sans leading-relaxed ${!caseDetail.root_cause ? 'text-slate-500 italic' : 'text-slate-200'}`}>
+                {caseDetail.root_cause || "Not yet executed"}
               </div>
             </div>
 
@@ -342,22 +371,26 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
 
             <div>
               <div className="text-slate-500">Decision Agent Recommendation</div>
-              <div className="flex items-center justify-between font-mono font-semibold text-emerald-400 mt-1 bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-800/50">
-                <span>{caseDetail.recommended_action || "CREATE_PAYMENT_LINK"}</span>
-                {(() => {
-                  let aiMeta: any = null;
-                  try {
-                    if (caseDetail.latest_prediction?.reason) {
-                      aiMeta = JSON.parse(caseDetail.latest_prediction.reason);
-                    }
-                  } catch {}
-                  return aiMeta?.channel ? (
-                    <span className="text-[10px] text-emerald-300 font-sans bg-emerald-900/50 px-2 py-0.5 rounded border border-emerald-700/50">
-                      Channel: {aiMeta.channel}
-                    </span>
-                  ) : null;
-                })()}
-              </div>
+              {caseDetail.recommended_action ? (
+                <div className="flex items-center justify-between font-mono font-semibold text-emerald-400 mt-1 bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-800/50">
+                  <span>{caseDetail.recommended_action}</span>
+                  {(() => {
+                    let aiMeta: any = null;
+                    try {
+                      if (caseDetail.latest_prediction?.reason) {
+                        aiMeta = JSON.parse(caseDetail.latest_prediction.reason);
+                      }
+                    } catch {}
+                    return aiMeta?.channel ? (
+                      <span className="text-[10px] text-emerald-300 font-sans bg-emerald-900/50 px-2 py-0.5 rounded border border-emerald-700/50">
+                        Channel: {aiMeta.channel}
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
+              ) : (
+                <div className="mt-1 text-slate-500 italic">Not yet executed</div>
+              )}
             </div>
 
             {/* Model Trace & Latency */}
@@ -376,35 +409,54 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
             Policy Engine Authorization
           </div>
-          <div className="space-y-3 text-xs">
-            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-              <span className="text-slate-400">Automated Attempts Check</span>
-              <span className="font-mono font-medium text-slate-200">
-                {caseDetail.attempt_count} / 2 allowed
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-              <span className="text-slate-400">Amount Limit (≤ ₹10,000)</span>
-              <span className="font-mono font-medium text-slate-200">
-                {caseDetail.amount_at_risk_paise <= 1000000 ? "PASSED (≤ ₹10k)" : "EXCEEDED (> ₹10k)"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-              <span className="text-slate-400">Minimum Probability (≥ 40%)</span>
-              <span className="font-mono font-medium text-slate-200">
-                {caseDetail.recovery_probability >= 0.4 ? "PASSED" : "BLOCKED"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-slate-400">Opt-Out Guardrail</span>
-              <span className="font-mono font-medium text-emerald-400">
-                {caseDetail.customer?.opted_out ? "BLOCKED" : "CLEARED"}
-              </span>
-            </div>
-            <div className="rounded-lg bg-slate-950 p-2.5 border border-slate-800 text-[11px] text-slate-400">
-              <strong className="text-slate-300">Safety Rule:</strong> LLM never changes amount or overrides attempt limits. Controlled deterministically by application code.
-            </div>
-          </div>
+          {(() => {
+            const policyLog = caseDetail.audit_logs.find(log => log.event_name.startsWith('POLICY_'));
+            let decision = "WAITING";
+            let explanation = "Policy has not been evaluated yet.";
+            if (policyLog) {
+                decision = policyLog.event_name.replace('POLICY_', '');
+                explanation = policyLog.reason || explanation;
+            }
+            
+            return (
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                  <span className="text-slate-400">Decision</span>
+                  <span className={`font-mono font-bold ${decision === "ALLOW" ? "text-emerald-400" : decision === "WAITING" ? "text-amber-400" : "text-rose-400"}`}>
+                    {decision}
+                  </span>
+                </div>
+                
+                {policy && (
+                  <>
+                    <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">Automated Attempts Check</span>
+                      <span className="font-mono font-medium text-slate-200">
+                        {caseDetail.attempt_count} / {policy.max_attempts} allowed
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">Amount Limit (≤ {formatINR(policy.max_automated_amount_paise)})</span>
+                      <span className="font-mono font-medium text-slate-200">
+                        {caseDetail.amount_at_risk_paise <= policy.max_automated_amount_paise ? "PASSED" : "EXCEEDED"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">Minimum Probability (≥ {formatPercent(policy.min_probability)})</span>
+                      <span className="font-mono font-medium text-slate-200">
+                        {caseDetail.recovery_probability >= policy.min_probability ? "PASSED" : "BLOCKED"}
+                      </span>
+                    </div>
+                  </>
+                )}
+                
+                <div className="mt-3 rounded-lg bg-slate-950 p-3 border border-slate-800 text-[11px]">
+                  <div className="text-slate-500 mb-1">Why Settl Acted:</div>
+                  <div className="text-slate-300 font-sans leading-relaxed">{explanation}</div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -412,7 +464,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 space-y-4">
         <h2 className="text-base font-semibold text-white flex items-center gap-2">
           <Clock className="h-4 w-4 text-sky-400" />
-          Audit Trail & Traceability
+          Technical Details & Audit Trail
         </h2>
         <p className="text-xs text-slate-400">
           Append-only verifiable ledger of every event, agent recommendation, policy evaluation, and webhook receipt.

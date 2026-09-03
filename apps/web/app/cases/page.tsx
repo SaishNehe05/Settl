@@ -84,14 +84,14 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
                         {c.id}
                       </Link>
                       <div className="mt-1">
-                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold border ${c.source === 'simulation' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
-                          {c.source === 'simulation' ? 'SIMULATION' : 'RAZORPAY TEST'}
+                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold border ${c.source === 'simulation' || c.source === 'synthetic' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
+                          {c.source === 'simulation' || c.source === 'synthetic' ? (c.source).toUpperCase() : 'RAZORPAY TEST MODE'}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-slate-200">{c.customer_name || "Demo Customer"}</div>
-                      <div className="text-[11px] text-slate-500">{c.customer_email || "-"}</div>
+                      <div className="font-medium text-slate-200">{c.customer_name || "Not available"}</div>
+                      <div className="text-[11px] text-slate-500">{c.customer_email || "Not available"}</div>
                     </td>
                     <td className="px-6 py-4 font-semibold text-slate-100">
                       {formatINR(c.amount_at_risk_paise)}
@@ -115,7 +115,7 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono text-[11px] text-slate-300">
-                      {c.recommended_action || "ANALYZING"}
+                      {c.recommended_action || (c.status === "NEW" || c.status === "ANALYZING" ? "ANALYZING" : "Not yet executed")}
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={c.status} />
