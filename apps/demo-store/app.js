@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnLoader = buyButton.querySelector('.btn-loader');
     const toastContainer = document.getElementById('toast-container');
 
-    const API_URL = 'http://localhost:8000/api/v1/demo/create-order';
+    const API_URL = '/api/v1/demo/create-order';
     
     // Config
     const checkoutAmountPaise = 849900; // ₹8,499.00
