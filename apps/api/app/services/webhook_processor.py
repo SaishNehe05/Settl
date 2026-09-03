@@ -121,31 +121,34 @@ def _process_webhook_internal(db: Session, wh: WebhookEvent) -> None:
 
     except Exception as e:
         db.rollback()
-        wh.status = "PROCESSING_FAILED"
-        wh.processing_error = str(e)[:2000]
-        wh.processed_at = datetime.now(timezone.utc)
-        db.commit()
-        logger.error(f"Webhook {wh.id} processing failed: {e}", exc_info=True)
+        # Refetch safely after rollback to avoid DetachedInstanceError
+        safe_wh = db.query(WebhookEvent).filter(WebhookEvent.id == webhook_id).first()
+        if safe_wh:
+            safe_wh.status = "PROCESSING_FAILED"
+            safe_wh.processing_error = str(e)[:2000]
+            safe_wh.processed_at = datetime.now(timezone.utc)
+            db.commit()
+        logger.error(f"Webhook {webhook_id} processing failed: {e}", exc_info=True)
         raise
 
 
 def _resolve_merchant(db: Session, normalized: NormalizedWebhookEvent) -> str:
     """
     Resolves the Settl merchant from webhook context.
-    Priority:
-    1. settl_merchant_id from payload notes
-    2. account_id mapping (future)
-    3. Default demo merchant
+    Strict tenant isolation: fails if the merchant cannot be explicitly resolved.
     """
     if normalized.settl_merchant_id:
         from app.models.merchant import Merchant
         merchant = db.query(Merchant).filter(Merchant.id == normalized.settl_merchant_id).first()
         if merchant:
+            logger.info(f"MERCHANT RESOLUTION = SUCCESS\nmerchant_id={merchant.id}")
             return merchant.id
+        
+        logger.error(f"MERCHANT RESOLUTION = FAILED\nreason=Merchant ID '{normalized.settl_merchant_id}' provided in notes not found in database.")
+        raise ValueError(f"Merchant ID '{normalized.settl_merchant_id}' from notes not found in database.")
 
-    # Future: look up merchant by Razorpay account_id mapping
-    # For now, default to demo merchant
-    return DEFAULT_MERCHANT_ID
+    logger.error(f"MERCHANT RESOLUTION = FAILED\nreason=No settl_merchant_id found in webhook notes and no tenant mapping exists for account_id '{normalized.account_id}'.")
+    raise ValueError(f"No settl_merchant_id found in webhook notes for account_id '{normalized.account_id}'. Tenant isolation requires explicit mapping.")
 
 
 def _resolve_customer(

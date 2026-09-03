@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     "contact": "9999999999"
                 },
                 "notes": {
-                    "settl_merchant_id": "MER_DEMO_01",
+                    "settl_merchant_id": data.merchant_id,
                     "source": "demo_store"
                 },
                 "theme": {

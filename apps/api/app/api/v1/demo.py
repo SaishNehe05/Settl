@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 import razorpay
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models.merchant import Merchant
 from app.config import settings
 
 router = APIRouter(prefix="/demo", tags=["Demo Store"])
@@ -11,7 +14,7 @@ class CreateOrderRequest(BaseModel):
     receipt: str = "demo_receipt"
 
 @router.post("/create-order")
-def create_demo_order(req: CreateOrderRequest):
+def create_demo_order(req: CreateOrderRequest, db: Session = Depends(get_db)):
     """
     Creates a Razorpay Order for the Demo Store checkout.
     """
@@ -19,6 +22,14 @@ def create_demo_order(req: CreateOrderRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Razorpay credentials not configured in backend."
+        )
+
+    # Fetch a real merchant to map the webhook to the correct tenant
+    merchant = db.query(Merchant).order_by(Merchant.created_at.desc()).first()
+    if not merchant:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="No merchant found in the database. Please register a merchant first."
         )
 
     try:
@@ -36,7 +47,8 @@ def create_demo_order(req: CreateOrderRequest):
             "order_id": order["id"],
             "amount": order["amount"],
             "currency": order["currency"],
-            "key_id": settings.RAZORPAY_KEY_ID # Needed by frontend to initialize Razorpay Checkout
+            "key_id": settings.RAZORPAY_KEY_ID,
+            "merchant_id": merchant.id
         }
     except Exception as e:
         raise HTTPException(
