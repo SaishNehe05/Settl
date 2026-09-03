@@ -387,19 +387,6 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
               {caseDetail.recommended_action ? (
                 <div className="flex items-center justify-between font-semibold text-emerald-400 mt-1 bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-800/50">
                   <span>{formatAction(caseDetail.recommended_action)}</span>
-                  {(() => {
-                    let aiMeta: any = null;
-                    try {
-                      if (caseDetail.latest_prediction?.reason) {
-                        aiMeta = JSON.parse(caseDetail.latest_prediction.reason);
-                      }
-                    } catch {}
-                    return aiMeta?.channel ? (
-                      <span className="text-[10px] text-emerald-300 font-sans bg-emerald-900/50 px-2 py-0.5 rounded border border-emerald-700/50">
-                        Channel: {aiMeta.channel}
-                      </span>
-                    ) : null;
-                  })()}
                 </div>
               ) : (
                 <div className="mt-1 text-slate-500 italic">Not yet executed</div>
