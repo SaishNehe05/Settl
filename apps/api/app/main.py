@@ -6,6 +6,10 @@ from app.api.v1.router import api_v1_router
 from app.database import engine, Base, SessionLocal
 import app.models  # Ensure all models are registered
 import os
+import logging
+
+# Ensure INFO logs (like our webhook traces) show up on Render and locally
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 # Ensure tables exist (Alembic manages migrations)
 if settings.sqlalchemy_database_url.startswith("sqlite"):
