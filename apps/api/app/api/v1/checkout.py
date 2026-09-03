@@ -58,8 +58,7 @@ def ingest_checkout_event(
             name=req.customer_name or "Anonymous Customer",
             email=req.customer_email or f"customer_{generate_uuid()}@example.com",
             phone=req.customer_phone or "+919876543210",
-            success_rate=0.85, # Note: Total transactions = 0, so AI won't use this anyway
-            total_transactions=0,
+            success_rate=0.85, # Note: AI treats new users dynamically
             customer_value="MEDIUM",
             opted_out=False,
         )
