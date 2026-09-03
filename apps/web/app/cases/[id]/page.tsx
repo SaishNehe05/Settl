@@ -24,6 +24,41 @@ interface CaseDetailPageProps {
 
 export const revalidate = 0;
 
+const formatAction = (action: string | null) => {
+  if (!action) return null;
+  const map: Record<string, string> = {
+    "CREATE_PAYMENT_LINK": "Send Recovery Payment Link",
+    "SEND_REMINDER": "Send Reminder",
+    "WAIT": "Wait and Monitor",
+    "MONITOR": "Wait and Monitor",
+    "CUSTOMER_ACTION_REQUIRED": "Request Customer Action",
+    "CREATE_COLLECTION_CASE": "Escalate to Internal Collections"
+  };
+  return map[action] || action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+};
+
+const formatRootCause = (cause: string | null) => {
+  if (!cause) return "Not yet executed";
+  const match = cause.match(/^\[(.*?)\] (.*)$/);
+  if (match) {
+    const category = match[1];
+    const desc = match[2];
+    let readableCategory = category;
+    if (category === "BANK_TECHNICAL") readableCategory = "Likely bank or network issue";
+    if (category === "CUSTOMER_ABANDONED") readableCategory = "Customer abandoned checkout";
+    if (category === "INSUFFICIENT_FUNDS") readableCategory = "Insufficient funds";
+    if (category === "FRAUD_SUSPICION") readableCategory = "Suspected fraud / Risk blocked";
+    return (
+      <>
+        <div className="font-semibold text-slate-200 mb-1">{readableCategory}</div>
+        <div className="text-slate-400 text-[11px] leading-relaxed">{desc}</div>
+        <div className="text-slate-600 text-[9px] font-mono mt-2 pt-2 border-t border-slate-800">Internal code: {category}</div>
+      </>
+    );
+  }
+  return cause;
+};
+
 export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   const { id } = await params;
   const caseDetail = await fetchCaseDetail(id);
@@ -286,8 +321,8 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
               </div>
               <div>
                 <div className="text-slate-500">Customer Tier</div>
-                <div className={`font-semibold text-sm mt-0.5 ${caseDetail.customer?.customer_value ? 'text-purple-400' : 'text-slate-500 font-normal italic'}`}>
-                  {caseDetail.customer?.customer_value || "No previous history"}
+                <div className={`font-semibold text-sm mt-0.5 ${(caseDetail.customer?.customer_value && caseDetail.customer.customer_value !== "UNKNOWN") ? 'text-purple-400' : 'text-slate-500 font-normal italic'}`}>
+                  {(!caseDetail.customer?.customer_value || caseDetail.customer.customer_value === "UNKNOWN") ? "No previous history" : caseDetail.customer.customer_value}
                 </div>
               </div>
             </div>
@@ -335,8 +370,8 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             </div>
             <div>
               <div className="text-slate-500">Diagnostic Root Cause</div>
-              <div className={`mt-1 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 font-sans leading-relaxed ${!caseDetail.root_cause ? 'text-slate-500 italic' : 'text-slate-200'}`}>
-                {caseDetail.root_cause || "Not yet executed"}
+              <div className={`mt-1 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 font-sans ${!caseDetail.root_cause ? 'text-slate-500 italic' : ''}`}>
+                {formatRootCause(caseDetail.root_cause)}
               </div>
             </div>
 
@@ -372,8 +407,8 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             <div>
               <div className="text-slate-500">Decision Agent Recommendation</div>
               {caseDetail.recommended_action ? (
-                <div className="flex items-center justify-between font-mono font-semibold text-emerald-400 mt-1 bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-800/50">
-                  <span>{caseDetail.recommended_action}</span>
+                <div className="flex items-center justify-between font-semibold text-emerald-400 mt-1 bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-800/50">
+                  <span>{formatAction(caseDetail.recommended_action)}</span>
                   {(() => {
                     let aiMeta: any = null;
                     try {
@@ -420,32 +455,62 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             
             return (
               <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Decision</span>
-                  <span className={`font-mono font-bold ${decision === "ALLOW" ? "text-emerald-400" : decision === "WAITING" ? "text-amber-400" : "text-rose-400"}`}>
-                    {decision}
+                <div className="flex items-center justify-between py-2 border-b border-slate-800/60">
+                  <span className="text-slate-400 font-semibold">Policy Decision</span>
+                  <span className={`font-bold flex items-center gap-1.5 ${decision === "ALLOW" ? "text-emerald-400" : decision === "WAITING" ? "text-amber-400" : "text-rose-400"}`}>
+                    {decision === "ALLOW" ? <CheckCircle2 className="h-4 w-4" /> : null}
+                    {decision === "ALLOW" ? "Approved" : decision}
                   </span>
                 </div>
                 
                 {policy && (
                   <>
-                    <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                      <span className="text-slate-400">Automated Attempts Check</span>
-                      <span className="font-mono font-medium text-slate-200">
-                        {caseDetail.attempt_count} / {policy.max_attempts} allowed
-                      </span>
+                    <div className="flex flex-col py-2 border-b border-slate-800/60">
+                      <span className="text-slate-400">Amount</span>
+                      <div className="flex items-center gap-2 mt-0.5 text-slate-200">
+                        {caseDetail.amount_at_risk_paise <= policy.max_automated_amount_paise ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        ) : (
+                          <span className="text-rose-400 font-bold px-1">X</span>
+                        )}
+                        <span>Within automated limit (≤ {formatINR(policy.max_automated_amount_paise)})</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                      <span className="text-slate-400">Amount Limit (≤ {formatINR(policy.max_automated_amount_paise)})</span>
-                      <span className="font-mono font-medium text-slate-200">
-                        {caseDetail.amount_at_risk_paise <= policy.max_automated_amount_paise ? "PASSED" : "EXCEEDED"}
-                      </span>
+                    
+                    <div className="flex flex-col py-2 border-b border-slate-800/60">
+                      <span className="text-slate-400">Attempts</span>
+                      <div className="flex items-center gap-2 mt-0.5 text-slate-200">
+                        {caseDetail.attempt_count <= policy.max_attempts ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        ) : (
+                          <span className="text-rose-400 font-bold px-1">X</span>
+                        )}
+                        <span>{caseDetail.attempt_count} of {policy.max_attempts}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                      <span className="text-slate-400">Minimum Probability (≥ {formatPercent(policy.min_probability)})</span>
-                      <span className="font-mono font-medium text-slate-200">
-                        {caseDetail.recovery_probability >= policy.min_probability ? "PASSED" : "BLOCKED"}
-                      </span>
+
+                    <div className="flex flex-col py-2 border-b border-slate-800/60">
+                      <span className="text-slate-400">Minimum Probability</span>
+                      <div className="flex items-center gap-2 mt-0.5 text-slate-200">
+                        {caseDetail.recovery_probability >= policy.min_probability ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        ) : (
+                          <span className="text-rose-400 font-bold px-1">X</span>
+                        )}
+                        <span>Meets {formatPercent(policy.min_probability)} threshold</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col py-2 border-b border-slate-800/60">
+                      <span className="text-slate-400">Customer Consent</span>
+                      <div className="flex items-center gap-2 mt-0.5 text-slate-200">
+                        {(!caseDetail.customer || !caseDetail.customer.opted_out) ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        ) : (
+                          <span className="text-rose-400 font-bold px-1">X</span>
+                        )}
+                        <span>Contact allowed</span>
+                      </div>
                     </div>
                   </>
                 )}
