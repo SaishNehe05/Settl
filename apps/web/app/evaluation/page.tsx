@@ -59,7 +59,7 @@ export default function EvaluationDashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Batch Measurement & Safety Evaluation</h1>
           <p className="text-muted-foreground mt-2">
-            Automated testing of Settl&apos;s decision and policy engines across 5,000 synthetic events.
+            Automated testing of Settl&apos;s decision and policy engines across your actual historical events.
           </p>
         </div>
         <button
@@ -73,16 +73,16 @@ export default function EvaluationDashboard() {
               <span>Evaluating Batch...</span>
             </>
           ) : (
-            <span>Run 5,000 Event Evaluation</span>
+            <span>Run Live Data Evaluation</span>
           )}
         </button>
       </div>
 
-      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-4 rounded-lg flex items-start space-x-3">
-        <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+      <div className="bg-sky-500/10 border border-sky-500/20 text-sky-500 p-4 rounded-lg flex items-start space-x-3">
+        <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         <div>
-          <h3 className="font-semibold">SYNTHETIC EVALUATION MODE</h3>
-          <p className="text-sm opacity-90">This dashboard displays metrics from synthetic test sets processed through the real Settl pipeline. It does not reflect live merchant revenue, and no real Razorpay payment links are generated during this batch.</p>
+          <h3 className="font-semibold">LIVE DATA EVALUATION MODE</h3>
+          <p className="text-sm opacity-90">This dashboard simulates the latest AI models and policies against your real historical database cases in a protected sandbox. No real customers are contacted and no Razorpay links are created during this run.</p>
         </div>
       </div>
 
@@ -104,7 +104,7 @@ export default function EvaluationDashboard() {
             <div className="bg-card border rounded-xl p-6 shadow-sm">
               <p className="text-sm font-medium text-muted-foreground">Revenue at Risk</p>
               <h2 className="text-3xl font-bold mt-2">{formatINR(data.metrics.revenue_at_risk_paise)}</h2>
-              <p className="text-xs text-muted-foreground mt-1">Total value of all 5,000 events</p>
+              <p className="text-xs text-muted-foreground mt-1">Total value of evaluated cases</p>
             </div>
             <div className="bg-card border rounded-xl p-6 shadow-sm">
               <p className="text-sm font-medium text-muted-foreground">Eligible Revenue</p>
@@ -123,39 +123,7 @@ export default function EvaluationDashboard() {
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="bg-card border rounded-xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4">Decision Quality (AI Engine)</h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Detection Precision</span>
-                    <span className="font-medium">{(data.metrics.detection_precision * 100).toFixed(1)}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500" style={{ width: `${data.metrics.detection_precision * 100}%` }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Detection Recall</span>
-                    <span className="font-medium">{(data.metrics.detection_recall * 100).toFixed(1)}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500" style={{ width: `${data.metrics.detection_recall * 100}%` }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Overall Decision Accuracy</span>
-                    <span className="font-medium">{(data.metrics.decision_accuracy * 100).toFixed(1)}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500" style={{ width: `${data.metrics.decision_accuracy * 100}%` }} />
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="grid gap-6">
 
             <div className="bg-card border rounded-xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold mb-4">Safety Guardrails (Policy Engine)</h3>
@@ -206,7 +174,6 @@ export default function EvaluationDashboard() {
                     <th className="px-6 py-3">Recovered</th>
                     <th className="px-6 py-3">Stopped</th>
                     <th className="px-6 py-3">Escalated</th>
-                    <th className="px-6 py-3">Accuracy</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -219,7 +186,6 @@ export default function EvaluationDashboard() {
                       <td className="px-6 py-4 text-emerald-500 font-medium">{formatINR(stats.recovered_revenue_paise)}</td>
                       <td className="px-6 py-4 text-red-400">{stats.stopped}</td>
                       <td className="px-6 py-4 text-amber-500">{stats.escalated}</td>
-                      <td className="px-6 py-4">{(stats.correct_decisions / stats.cases * 100).toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -242,7 +208,6 @@ export default function EvaluationDashboard() {
                     <th className="px-6 py-3">AI Recommendation</th>
                     <th className="px-6 py-3">Policy Decision</th>
                     <th className="px-6 py-3">Outcome</th>
-                    <th className="px-6 py-3">Correct?</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -258,13 +223,6 @@ export default function EvaluationDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4 font-medium">{t.outcome}</td>
-                      <td className="px-6 py-4">
-                        {t.is_correct ? (
-                          <span className="text-emerald-500 flex items-center"><svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Yes</span>
-                        ) : (
-                          <span className="text-red-500 flex items-center"><svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg> No</span>
-                        )}
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -280,7 +238,7 @@ export default function EvaluationDashboard() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
           <h3 className="text-lg font-medium">No Evaluation Data</h3>
-          <p className="mt-1">Click the button above to run the 5,000-event batch evaluation.</p>
+          <p className="mt-1">Click the button above to run the live data evaluation.</p>
         </div>
       )}
     </div>

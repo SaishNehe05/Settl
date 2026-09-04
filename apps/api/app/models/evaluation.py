@@ -31,10 +31,10 @@ class EvaluationTrace(Base):
     amount_paise = Column(BigInteger, nullable=False)
     customer_success_rate = Column(Float, nullable=False)
     
-    # Ground truth
-    ground_truth_recoverable = Column(Boolean, nullable=False)
-    ground_truth_ideal_action = Column(String, nullable=False)
-    ground_truth_scenario = Column(String, nullable=False)
+    # Ground truth (Nullable for real data evaluation)
+    ground_truth_recoverable = Column(Boolean, nullable=True)
+    ground_truth_ideal_action = Column(String, nullable=True)
+    ground_truth_scenario = Column(String, nullable=True)
     
     # Settl AI/Policy
     settl_recommended_action = Column(String, nullable=True)
@@ -44,8 +44,8 @@ class EvaluationTrace(Base):
     
     # Outcomes
     simulated_outcome = Column(String, nullable=False) # RECOVERED, FAILED, STOPPED, ESCALATED
-    is_decision_correct = Column(Boolean, nullable=False)
-    is_escalation_correct = Column(Boolean, nullable=False)
+    is_decision_correct = Column(Boolean, nullable=True)
+    is_escalation_correct = Column(Boolean, nullable=True)
     policy_violation = Column(Boolean, default=False, nullable=False)
     duplicate_action = Column(Boolean, default=False, nullable=False)
     unauthorized_action = Column(Boolean, default=False, nullable=False)

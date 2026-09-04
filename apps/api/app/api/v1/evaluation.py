@@ -49,11 +49,9 @@ def get_latest_evaluation(db: Session = Depends(get_db)):
                 "event_id": t.event_id,
                 "scenario": t.ground_truth_scenario,
                 "amount_paise": t.amount_paise,
-                "ground_truth": t.ground_truth_ideal_action,
                 "ai_recommendation": t.settl_recommended_action,
                 "policy_decision": t.policy_decision,
                 "outcome": t.simulated_outcome,
-                "is_correct": t.is_decision_correct,
                 "policy_violation": t.policy_violation
             }
             for t in traces

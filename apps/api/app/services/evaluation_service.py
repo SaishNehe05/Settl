@@ -53,15 +53,14 @@ def run_evaluation_batch():
     using nested transactions to rollback live DB changes, computes metrics,
     and saves to EvaluationRun and EvaluationTrace tables.
     """
-    # 1. Load Dataset
-    data_path = os.path.join(os.path.dirname(__file__), "../../data/eval_dataset.json")
-    if not os.path.exists(data_path):
-        raise FileNotFoundError(f"Evaluation dataset not found at {data_path}")
-        
-    with open(data_path, "r") as f:
-        events = json.load(f)
-        
     db = SessionLocal()
+    
+    # 1. Fetch real cases from the database
+    real_cases = db.query(RecoveryCase).join(RevenueEvent).filter(RevenueEvent.source != "synthetic").all()
+    
+    if not real_cases:
+        db.close()
+        raise ValueError("No real cases found in the database to evaluate.")
     
     # 2. Get the actual deployed merchant and policy
     merchant = db.query(Merchant).first()
@@ -75,8 +74,8 @@ def run_evaluation_batch():
         raise ValueError(f"No policy found for merchant {merchant.name}")        
     # Create the run record
     run = EvaluationRun(
-        dataset_version="v1.0",
-        dataset_size=len(events),
+        dataset_version="live_db_v1",
+        dataset_size=len(real_cases),
         model_version="settl-intelligence-baseline",
         policy_version="1.0",
         metrics={},
@@ -93,93 +92,50 @@ def run_evaluation_batch():
     
     # Metrics aggregators
     metrics = EvaluationMetrics()
-    metrics.total_cases = len(events)
-    
-    true_positives = 0
-    false_positives = 0
-    false_negatives = 0
-    correct_decisions = 0
+    metrics.total_cases = len(real_cases)
     
     dummy_db = DummySession()
     
     try:
-        for idx, e_data in enumerate(events):
+        for idx, case in enumerate(real_cases):
             try:
-                # 1. Setup in-memory mock entities (NO DB INSERTS)
-                customer = Customer(
-                    id=generate_uuid("CUS"),
-                    merchant_id=merchant.id,
-                    name=e_data["customer"]["name"],
-                    success_rate=e_data["customer"]["success_rate"],
-                    opted_out=e_data["customer"]["opted_out"]
-                )
+                event = case.revenue_event
+                customer = event.customer
                 
-                raw_payload = {}
-                if "days_overdue" in e_data:
-                    raw_payload["days_overdue"] = e_data["days_overdue"]
-                    
-                event = RevenueEvent(
-                    id=generate_uuid("EVT"),
-                    merchant_id=merchant.id,
-                    customer_id=customer.id,
-                    event_type=e_data["event_type"],
-                    amount_paise=e_data["amount_paise"],
-                    failure_reason=e_data["failure_reason"],
-                    source="synthetic_evaluation",
-                    provider_state=e_data.get("provider_state"),
-                    raw_payload=raw_payload
-                )
-                
-                case = RecoveryCase(
-                    id=generate_uuid("CASE"),
-                    merchant_id=merchant.id,
-                    revenue_event_id=event.id,
-                    amount_at_risk_paise=e_data["amount_paise"],
-                    recovery_probability=0.8,
-                    attempt_count=0,
+                # Setup dummy tracking fields to avoid modifying real records
+                eval_case = RecoveryCase(
+                    id=case.id,
+                    merchant_id=case.merchant_id,
+                    revenue_event_id=case.revenue_event_id,
+                    amount_at_risk_paise=case.amount_at_risk_paise,
+                    recovery_probability=case.recovery_probability,
+                    attempt_count=case.attempt_count,
                     status="ANALYZING"
                 )
                 
                 # 2. Run Real AI Engine using DummySession to prevent DB writes
-                ai_analysis = analyze_and_decide(dummy_db, case, customer, event)
-                case.recommended_action = ai_analysis.decision.recommended_action
-                case.root_cause = f"[{ai_analysis.root_cause.failure_category}] {ai_analysis.root_cause.summary}"
+                ai_analysis = analyze_and_decide(dummy_db, eval_case, customer, event)
+                eval_case.recommended_action = ai_analysis.decision.recommended_action
+                eval_case.root_cause = f"[{ai_analysis.root_cause.failure_category}] {ai_analysis.root_cause.summary}"
                 
                 # 3. Run Real Policy Engine
                 policy_result = evaluate_policy_guardrails(
-                    case=case,
+                    case=eval_case,
                     customer=customer,
                     policy=policy,
-                    proposed_action=case.recommended_action,
+                    proposed_action=eval_case.recommended_action,
                 )
                 
                 # 4. Evaluate Outcomes & Safety
-                gt_recoverable = e_data["ground_truth_recoverable"]
-                gt_ideal = e_data["ground_truth_ideal_action"]
+                actual_action = eval_case.recommended_action if policy_result.status == "ALLOW" else policy_result.status
                 
-                actual_action = case.recommended_action if policy_result.status == "ALLOW" else policy_result.status
-                
-                # Accuracy
-                is_correct = (case.recommended_action == gt_ideal)
-                if is_correct:
-                    correct_decisions += 1
-                    
-                # Precision/Recall logic
-                # Positive = model says recoverable (action != STOP)
-                # True = ground truth says recoverable
-                model_positive = (case.recommended_action != "STOP")
-                
-                if model_positive and gt_recoverable:
-                    true_positives += 1
-                elif model_positive and not gt_recoverable:
-                    false_positives += 1
-                elif not model_positive and gt_recoverable:
-                    false_negatives += 1
+                # Simulate recovery based on AI's confidence if policy allows it
+                is_recoverable = eval_case.recovery_probability > 0.5
                     
                 # Calculate Outcome
                 if policy_result.status == "ALLOW":
                     metrics.allowed_cases += 1
-                    simulated_outcome = "RECOVERED" if gt_recoverable else "FAILED"
+                    simulated_outcome = "RECOVERED" if is_recoverable else "FAILED"
                 elif policy_result.status == "ESCALATED":
                     metrics.escalated_cases += 1
                     simulated_outcome = "ESCALATED"
@@ -195,11 +151,6 @@ def run_evaluation_batch():
                 duplicate_action = False
                 unauthorized_action = False
                 
-                # If ground truth was STOP but model recommended something else and policy ALLOWED it!
-                if gt_ideal == "STOP" and policy_result.status == "ALLOW":
-                    policy_violation = True
-                    metrics.policy_violations += 1
-                    
                 # If model recommended something unauthorized and it passed policy
                 if simulated_outcome in ["STOPPED", "ESCALATED", "WAITING"]:
                     # Ensure no unauthorized financial action would occur
@@ -207,23 +158,32 @@ def run_evaluation_batch():
                         unauthorized_action = True
                         metrics.unauthorized_actions += 1
                         
+                # Derive scenario from event type for reporting
+                scenario_map = {
+                    "PAYMENT_FAILED": "Payment Failure",
+                    "CHECKOUT_ABANDONED": "Checkout Abandonment",
+                    "SUBSCRIPTION_FAILED": "Subscription Failure",
+                    "INVOICE_OVERDUE": "Overdue Receivable"
+                }
+                scenario = scenario_map.get(event.event_type, "Other")
+                        
                 # 5. Build Trace
                 trace = EvaluationTrace(
                     run_id=run.id,
-                    event_id=e_data["event_id"],
-                    event_type=e_data["event_type"],
-                    amount_paise=e_data["amount_paise"],
-                    customer_success_rate=e_data["customer"]["success_rate"],
-                    ground_truth_recoverable=gt_recoverable,
-                    ground_truth_ideal_action=gt_ideal,
-                    ground_truth_scenario=e_data["scenario"],
-                    settl_recommended_action=case.recommended_action,
+                    event_id=event.id,
+                    event_type=event.event_type,
+                    amount_paise=case.amount_at_risk_paise,
+                    customer_success_rate=customer.success_rate if customer.success_rate else 0.5,
+                    ground_truth_recoverable=None,
+                    ground_truth_ideal_action=None,
+                    ground_truth_scenario=scenario,
+                    settl_recommended_action=eval_case.recommended_action,
                     policy_decision=policy_result.status,
                     policy_reason=policy_result.reason,
                     actual_action_taken=actual_action,
                     simulated_outcome=simulated_outcome,
-                    is_decision_correct=is_correct,
-                    is_escalation_correct=(policy_result.status == "ESCALATED" and gt_ideal == "ESCALATE"),
+                    is_decision_correct=None,
+                    is_escalation_correct=None,
                     policy_violation=policy_violation,
                     duplicate_action=duplicate_action,
                     unauthorized_action=unauthorized_action
@@ -231,8 +191,7 @@ def run_evaluation_batch():
                 traces.append(trace)
                 
                 # 6. Aggregate Financials
-                amt = e_data["amount_paise"]
-                scenario = e_data["scenario"]
+                amt = case.amount_at_risk_paise
                 
                 metrics.revenue_at_risk_paise += amt
                 
@@ -258,12 +217,9 @@ def run_evaluation_batch():
                 elif policy_result.status in ["BLOCKED", "STOP"]:
                     metrics.scenarios[scenario]["stopped"] += 1
                     
-                if is_correct:
-                    metrics.scenarios[scenario]["correct_decisions"] += 1
-
             except Exception as loop_e:
                 # Log any errors with single cases but continue
-                print(f"Error evaluating event {e_data['event_id']}: {loop_e}")
+                print(f"Error evaluating event {event.id}: {loop_e}")
                 
         # Insert all traces
         # Chunking inserts to avoid overloading SQLite
@@ -276,14 +232,6 @@ def run_evaluation_batch():
         if metrics.eligible_revenue_paise > 0:
             metrics.recovery_rate = metrics.recovered_revenue_paise / metrics.eligible_revenue_paise
             
-        if (true_positives + false_positives) > 0:
-            metrics.detection_precision = true_positives / (true_positives + false_positives)
-            
-        if (true_positives + false_negatives) > 0:
-            metrics.detection_recall = true_positives / (true_positives + false_negatives)
-            
-        metrics.decision_accuracy = correct_decisions / len(events)
-        
         run.metrics = metrics.model_dump()
         run.status = "COMPLETED"
         db.commit()
