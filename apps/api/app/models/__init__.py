@@ -14,6 +14,7 @@ from app.models.webhook_event import WebhookEvent
 from app.models.promise import Promise
 from app.models.checkout_session import CheckoutSession
 from app.models.invoice import Invoice
+from app.models.evaluation import EvaluationRun, EvaluationTrace
 
 __all__ = [
     "Base",
@@ -32,4 +33,6 @@ __all__ = [
     "WebhookEvent",
     "Promise",
     "CheckoutSession",
+    "EvaluationRun",
+    "EvaluationTrace",
 ]
