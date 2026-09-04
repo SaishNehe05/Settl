@@ -147,8 +147,11 @@ def _resolve_merchant(db: Session, normalized: NormalizedWebhookEvent) -> str:
         logger.error(f"MERCHANT RESOLUTION = FAILED\nreason=Merchant ID '{normalized.settl_merchant_id}' provided in notes not found in database.")
         raise ValueError(f"Merchant ID '{normalized.settl_merchant_id}' from notes not found in database.")
 
-    logger.error(f"MERCHANT RESOLUTION = FAILED\nreason=No settl_merchant_id found in webhook notes and no tenant mapping exists for account_id '{normalized.account_id}'.")
-    raise ValueError(f"No settl_merchant_id found in webhook notes for account_id '{normalized.account_id}'. Tenant isolation requires explicit mapping.")
+    # Hackathon Demo fallback: If no explicit merchant is provided in the payload,
+    # assume it belongs to the primary demo merchant so that generic Razorpay
+    # webhooks (like from Postman) are successfully processed.
+    logger.info(f"MERCHANT RESOLUTION = FALLBACK\nreason=No explicit settl_merchant_id found, defaulting to {DEFAULT_MERCHANT_ID}")
+    return DEFAULT_MERCHANT_ID
 
 
 def _resolve_customer(
