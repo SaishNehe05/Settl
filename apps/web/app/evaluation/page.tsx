@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { formatINR } from "@/lib/utils";
+import { API_BASE } from "@/lib/config";
 
 export default function EvaluationDashboard() {
   const [data, setData] = useState<any>(null);
@@ -11,7 +12,7 @@ export default function EvaluationDashboard() {
 
   const fetchLatest = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/evaluation/latest");
+      const res = await fetch(`${API_BASE}/api/v1/evaluation/latest`);
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -44,7 +45,7 @@ export default function EvaluationDashboard() {
     setLoading(true);
     setError("");
     try {
-      await fetch("http://localhost:8000/api/v1/evaluation/run", { method: "POST" });
+      await fetch(`${API_BASE}/api/v1/evaluation/run`, { method: "POST" });
       setTimeout(fetchLatest, 2000);
     } catch (err: any) {
       setError(err.message);
