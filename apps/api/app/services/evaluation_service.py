@@ -46,7 +46,7 @@ class DummySession:
     def rollback(self, *args, **kwargs): pass
     def refresh(self, *args, **kwargs): pass
 
-def run_evaluation_batch():
+def run_evaluation_batch(merchant_id: str):
     """
     Runs the 5000 event evaluation.
     Loads data/eval_dataset.json, processes through real AI & Policy engines
@@ -55,18 +55,21 @@ def run_evaluation_batch():
     """
     db = SessionLocal()
     
-    # 1. Fetch real cases from the database
-    real_cases = db.query(RecoveryCase).join(RevenueEvent).filter(RevenueEvent.source != "synthetic").all()
+    # 1. Fetch real cases from the database for the specific merchant
+    real_cases = db.query(RecoveryCase).join(RevenueEvent).filter(
+        RevenueEvent.source != "synthetic",
+        RecoveryCase.merchant_id == merchant_id
+    ).all()
     
     if not real_cases:
         db.close()
-        raise ValueError("No real cases found in the database to evaluate.")
+        raise ValueError(f"No real cases found in the database to evaluate for merchant {merchant_id}.")
     
     # 2. Get the actual deployed merchant and policy
-    merchant = db.query(Merchant).first()
+    merchant = db.query(Merchant).filter(Merchant.id == merchant_id).first()
     if not merchant:
         db.close()
-        raise ValueError("No merchant found in database.")
+        raise ValueError(f"Merchant {merchant_id} not found in database.")
         
     policy = db.query(Policy).filter(Policy.merchant_id == merchant.id).first()
     if not policy:
@@ -74,6 +77,7 @@ def run_evaluation_batch():
         raise ValueError(f"No policy found for merchant {merchant.name}")        
     # Create the run record
     run = EvaluationRun(
+        merchant_id=merchant_id,
         dataset_version="live_db_v1",
         dataset_size=len(real_cases),
         model_version="settl-intelligence-baseline",

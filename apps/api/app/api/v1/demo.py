@@ -12,6 +12,7 @@ class CreateOrderRequest(BaseModel):
     amount_paise: int
     currency: str = "INR"
     receipt: str = "demo_receipt"
+    merchant_id: str
 
 @router.post("/create-order")
 def create_demo_order(req: CreateOrderRequest, db: Session = Depends(get_db)):
@@ -24,20 +25,13 @@ def create_demo_order(req: CreateOrderRequest, db: Session = Depends(get_db)):
             detail="Razorpay credentials not configured in backend."
         )
 
-    # Fetch a real merchant to map the webhook to the correct tenant
-    # Prioritize user-created merchants over the seeded demo merchant
-    merchant = (
-        db.query(Merchant)
-        .filter(Merchant.id != "MER_DEMO_01")
-        .order_by(Merchant.created_at.desc())
-        .first()
-    )
-    if not merchant:
-        merchant = db.query(Merchant).first()
+    # Fetch the exact merchant that the demo store is testing with
+    merchant = db.query(Merchant).filter(Merchant.id == req.merchant_id).first()
+    
     if not merchant:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No merchant found in the database. Please register a merchant first."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Merchant {req.merchant_id} not found."
         )
 
     try:

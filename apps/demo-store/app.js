@@ -39,6 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     buyButton.addEventListener('click', async () => {
+        const merchantId = document.getElementById('merchant-id').value.trim();
+        if (!merchantId) {
+            showToast('Please enter your Merchant ID (from Dashboard)', 'error');
+            return;
+        }
+
         setLoading(true);
         try {
             // 1. Create order on backend
@@ -50,12 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     amount_paise: checkoutAmountPaise,
                     currency: "INR",
-                    receipt: `receipt_${Date.now()}`
+                    receipt: `receipt_${Date.now()}`,
+                    merchant_id: merchantId
                 })
             });
 
             if (!response.ok) {
-                throw new Error('Failed to create Razorpay order');
+                const errData = await response.json();
+                throw new Error(errData.detail || 'Failed to create Razorpay order');
             }
 
             const data = await response.json();

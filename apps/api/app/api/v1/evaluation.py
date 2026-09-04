@@ -7,32 +7,56 @@ from app.models.evaluation import EvaluationRun, EvaluationTrace
 from app.services.evaluation_service import run_evaluation_batch
 from pydantic import BaseModel
 
+from app.api.deps import get_current_merchant
+from app.models.merchant import Merchant
+
 router = APIRouter()
 
 class RunResponse(BaseModel):
     status: str
     message: str
 
+from app.models.recovery_case import RecoveryCase
+from app.models.revenue_event import RevenueEvent
+
 @router.post("/run", response_model=RunResponse)
-def trigger_evaluation_run(background_tasks: BackgroundTasks):
+def trigger_evaluation_run(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_current_merchant)
+):
     """
     Triggers the Batch Measurement and Safety Evaluation System.
-    Runs 5,000 events through the real Settl pipeline in the background.
+    Runs events through the real Settl pipeline in the background.
     """
-    background_tasks.add_task(run_evaluation_batch)
+    cases_count = db.query(RecoveryCase).join(RevenueEvent).filter(
+        RevenueEvent.source != "synthetic",
+        RecoveryCase.merchant_id == merchant.id
+    ).count()
+    
+    if cases_count == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No recovery cases found for your business. Please complete at least one test checkout or failure in the Demo Store first!"
+        )
+
+    background_tasks.add_task(run_evaluation_batch, merchant.id)
     return RunResponse(
         status="success", 
-        message="Evaluation batch job submitted. Results will be available shortly."
+        message=f"Evaluation batch job submitted for {cases_count} cases. Results will be available shortly."
     )
 
 @router.get("/latest")
-def get_latest_evaluation(db: Session = Depends(get_db)):
+def get_latest_evaluation(
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_current_merchant)
+):
     """
-    Retrieves the metrics and traces from the most recent evaluation run.
+    Retrieves the metrics and traces from the most recent evaluation run for the current merchant.
     """
-    run = db.query(EvaluationRun).order_by(desc(EvaluationRun.timestamp)).first()
+    run = db.query(EvaluationRun).filter(EvaluationRun.merchant_id == merchant.id).order_by(desc(EvaluationRun.timestamp)).first()
     if not run:
-        raise HTTPException(status_code=404, detail="No evaluation runs found")
+        raise HTTPException(status_code=404, detail="No evaluation runs found for this merchant")
         
     traces = db.query(EvaluationTrace).filter(EvaluationTrace.run_id == run.id).limit(100).all() # Return sample for UI
     

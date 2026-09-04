@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { formatINR } from "@/lib/utils";
 import { API_BASE } from "@/lib/config";
 
+import { authFetch } from "@/lib/auth";
+
 export default function EvaluationDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -12,7 +14,7 @@ export default function EvaluationDashboard() {
 
   const fetchLatest = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/evaluation/latest`);
+      const res = await authFetch(`${API_BASE}/api/v1/evaluation/latest`);
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -27,7 +29,7 @@ export default function EvaluationDashboard() {
         if (res.status === 404) {
           setLoading(false);
         } else {
-          throw new Error("Failed to fetch");
+          throw new Error("Failed to fetch evaluation data");
         }
       }
     } catch (err: any) {
@@ -45,7 +47,11 @@ export default function EvaluationDashboard() {
     setLoading(true);
     setError("");
     try {
-      await fetch(`${API_BASE}/api/v1/evaluation/run`, { method: "POST" });
+      const res = await authFetch(`${API_BASE}/api/v1/evaluation/run`, { method: "POST" });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || "Failed to trigger evaluation run");
+      }
       setTimeout(fetchLatest, 2000);
     } catch (err: any) {
       setError(err.message);

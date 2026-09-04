@@ -7,6 +7,7 @@ class EvaluationRun(Base):
     __tablename__ = "evaluation_runs"
 
     id = Column(String, primary_key=True, default=lambda: generate_uuid("EVAL"))
+    merchant_id = Column(String, index=True, nullable=False)
     dataset_version = Column(String, nullable=False)
     dataset_size = Column(Integer, nullable=False)
     model_version = Column(String, nullable=False)

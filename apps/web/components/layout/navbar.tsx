@@ -46,6 +46,9 @@ export default function Navbar() {
           <div className="hidden md:block text-left text-xs leading-tight">
             <div className="font-medium text-slate-200 truncate max-w-[120px]">{merchant?.name || "Settl Merchant"}</div>
             <div className="text-[11px] text-slate-400 truncate max-w-[120px]">{merchant?.email || "merchant@settl.ai"}</div>
+            <div className="text-[10px] font-mono text-sky-400/80 truncate max-w-[120px]" title="Copy this ID for the Demo Store">
+              {merchant?.id || "MER_..."}
+            </div>
           </div>
         </div>
       </div>
