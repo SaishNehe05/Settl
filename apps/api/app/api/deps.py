@@ -39,9 +39,12 @@ def get_current_merchant(
             raise credentials_exception
         return merchant
 
-    # Hackathon Demo fallback to first merchant
+    # Hackathon Demo fallback to the demo store merchant
     # (Since there is no frontend auth system, we always allow this for the demo)
-    merchant = db.query(Merchant).first()
+    merchant = db.query(Merchant).filter(Merchant.id == "MER_DEMO_01").first()
+    if not merchant:
+        merchant = db.query(Merchant).first()
+        
     if merchant:
         return merchant
 
