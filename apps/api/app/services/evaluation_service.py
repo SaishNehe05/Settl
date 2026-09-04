@@ -63,16 +63,16 @@ def run_evaluation_batch():
         
     db = SessionLocal()
     
-    # 2. Get merchant and policy
-    merchant = db.query(Merchant).filter(Merchant.id == "MER_DEMO_01").first()
-    policy = db.query(Policy).filter(Policy.merchant_id == "MER_DEMO_01").first()
-    
-    if not merchant or not policy:
-        # Fallback for production databases that haven't been seeded with demo data
-        merchant = Merchant(id="MER_EVAL", name="Evaluation Test Merchant")
-        policy = Policy(merchant_id="MER_EVAL", max_attempts=2, max_automated_amount_paise=1000000, min_probability=0.5, cooldown_minutes=30)
-
+    # 2. Get the actual deployed merchant and policy
+    merchant = db.query(Merchant).first()
+    if not merchant:
+        db.close()
+        raise ValueError("No merchant found in database.")
         
+    policy = db.query(Policy).filter(Policy.merchant_id == merchant.id).first()
+    if not policy:
+        db.close()
+        raise ValueError(f"No policy found for merchant {merchant.name}")        
     # Create the run record
     run = EvaluationRun(
         dataset_version="v1.0",
