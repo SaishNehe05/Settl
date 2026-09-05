@@ -21,46 +21,7 @@ Modern Indian e-commerce merchants lose **15%–30% of gross transaction value**
 
 ## 🏛️ System Architecture
 
-```mermaid
-flowchart TD
-    subgraph Ingestion["1. Revenue Leakage Ingestion"]
-        E1["Payment Failure (Razorpay/UPI)"] --> ING["Event Ingestion Service"]
-        E2["Checkout Abandonment"] --> ING
-        E3["Subscription Churn"] --> ING
-        E4["Invoice Overdue (B2B)"] --> ING
-        ING --> IDEM["SHA-256 Deduplication Ledger"]
-        IDEM --> CASE["Create / Resume Recovery Case"]
-    end
-
-    subgraph Intelligence["2. AI Diagnosis & Calibrated Risk"]
-        CASE --> RISK["Deterministic Baseline Risk Model"]
-        RISK --> LLM["Structured AI Diagnostic Engine"]
-        LLM --> CAUSE["Root-Cause Classification<br>(BANK_TECHNICAL, 2FA, SESSION)"]
-        LLM --> ACT["Bounded Decision Recommendation<br>(CREATE_PAYMENT_LINK, STOP, WAIT)"]
-    end
-
-    subgraph Governance["3. Deterministic Policy Gate (Code Enforced)"]
-        ACT --> POL{"Policy Guardrails"}
-        POL -- "Opted Out" --> BLK["BLOCK: Zero Links Generated"]
-        POL -- "> ₹10,000" --> ESC["ESCALATE: Human Operator Review"]
-        POL -- "Max Attempts (2/2)" --> BLK
-        POL -- "All Passed" --> APP["APPROVED"]
-    end
-
-    subgraph Execution["4. Razorpay Test Mode Execution"]
-        APP --> RZP["Razorpay Payment Links Service<br>(Exact Paise Units)"]
-        RZP --> LINK["Issue Active Payment Link (rzp.io/i/...)"]
-        LINK --> WAIT["Status: WAITING_RESULT"]
-    end
-
-    subgraph Verification["5. Cryptographic Proof of Recovery"]
-        HOOK["Customer Pays via Payment Link"] --> RAW["Raw Webhook Payload Receiver"]
-        RAW --> HMAC{"HMAC-SHA256 Signature Valid?"}
-        HMAC -- "No" --> REJ["HTTP 401: Rejected"]
-        HMAC -- "Yes" --> REC["Amount Check (paid >= risk)"]
-        REC --> TERM["Terminal State: RECOVERED<br>Emerald Ledger Update"]
-    end
-```
+![System Architecture](system-architecture.png)
 
 ---
 
