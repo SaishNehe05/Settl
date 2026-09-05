@@ -35,14 +35,14 @@ def get_dashboard_summary(
     human_escalations = len([c for c in cases if c.status == "ESCALATED"])
     
     revenue_at_risk = sum(c.amount_at_risk_paise for c in cases)
-    # Eligible revenue: cases not blocked by policy eligibility
-    eligible_cases = [c for c in cases if c.status != "BLOCKED"]
+    # Eligible revenue: cases that passed policy or human approval
+    eligible_cases = [c for c in cases if c.status not in ["NEW", "ANALYZING", "READY", "POLICY_CHECK", "BLOCKED", "STOPPED", "ESCALATED"]]
     eligible_revenue = sum(c.amount_at_risk_paise for c in eligible_cases)
     
-    revenue_recovered = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED")
+    revenue_recovered = sum(c.amount_recovered_paise for c in cases)
     
-    simulation_revenue = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED" and c.revenue_event and c.revenue_event.source == "synthetic")
-    real_revenue = sum(c.amount_recovered_paise for c in cases if c.status == "RECOVERED" and c.revenue_event and c.revenue_event.source != "synthetic")
+    simulation_revenue = sum(c.amount_recovered_paise for c in cases if c.revenue_event and c.revenue_event.source == "synthetic")
+    real_revenue = sum(c.amount_recovered_paise for c in cases if c.revenue_event and c.revenue_event.source != "synthetic")
     
     recovery_attempts = sum(c.attempt_count for c in cases)
     
