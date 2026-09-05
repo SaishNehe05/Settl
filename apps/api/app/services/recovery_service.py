@@ -303,27 +303,93 @@ def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Di
             db.add(notif)
         
     elif action_type in ["SEND_REMINDER", "SEND_FOLLOW_UP", "SEND_PAYMENT_LINK", "CUSTOMER_ACTION_REQUIRED"]:
-        response_payload = {"status": "sent", "channel": "email", "recipient": customer.email if customer else "unknown"}
-        audit_event = f"{action_type}_SENT"
-        audit_reason = f"Sent {action_type} to {customer.email if customer else 'customer'} for ₹{case.amount_at_risk_paise/100:,.2f}."
-        next_case_status = "WAITING_RESULT"
+        recipient_addr = customer.email if customer and customer.email else (customer.phone if customer and customer.phone else "unknown")
         
-        # Persist notification
+        # Determine if there's a broken promise to ground the context
+        broken_promise = None
+        if getattr(case, 'promises', None):
+            for p in case.promises:
+                if p.status == "BROKEN":
+                    broken_promise = p
+                    break
+
         from app.models.notification import Notification
-        notif = Notification(
-            merchant_id=case.merchant_id,
-            case_id=case.id,
-            channel="EMAIL_SMS",
-            provider="razorpay",
-            message_type="CUSTOMER_ACTION",
-            recipient=customer.email if customer else "unknown",
-            content=f"Please update your payment instrument for subscription {case.subscription_id or ''}.",
-            status="PENDING",
-            provider_reference=None,
-            sent_at=datetime.now(timezone.utc)
+        from app.services.notification_service import send_email_notification
+
+        # Idempotency check: don't send if we already sent an email for this exact promise or state recently
+        # A simple check: if we already have a SENT notification of this type in the last 24h
+        recent_notif = (
+            db.query(Notification)
+            .filter(Notification.case_id == case.id, Notification.status == "SENT", Notification.message_type.in_(["PROMISE_REMINDER", "INVOICE_REMINDER"]))
+            .order_by(Notification.created_at.desc())
+            .first()
         )
-        db.add(notif)
-        
+        if recent_notif and (datetime.now(timezone.utc) - recent_notif.created_at).total_seconds() < 86400:
+            # We already sent one recently, skip duplicate
+            response_payload = {"status": "skipped", "reason": "Duplicate notification prevented"}
+            audit_event = f"{action_type}_SKIPPED"
+            audit_reason = f"Skipped {action_type} to {recipient_addr} to prevent duplicate."
+            next_case_status = "WAITING_RESULT"
+        elif customer and customer.opted_out:
+            response_payload = {"status": "blocked", "reason": "Customer opted out"}
+            audit_event = f"{action_type}_BLOCKED"
+            audit_reason = f"Skipped {action_type} to {recipient_addr} due to opt-out."
+            next_case_status = "WAITING_RESULT"
+        else:
+            response_payload = {"status": "sent", "channel": "email", "recipient": recipient_addr}
+            audit_event = f"{action_type}_SENT"
+            audit_reason = f"Sent {action_type} to {recipient_addr} for ₹{case.amount_at_risk_paise/100:,.2f}."
+            next_case_status = "WAITING_RESULT"
+            
+            merchant_name = case.merchant.name if case.merchant else "Settl Merchant"
+
+            if broken_promise:
+                inv_ref = case.invoice.external_invoice_id or case.invoice_id or "N/A" if case.invoice else "N/A"
+                due_str = broken_promise.promise_date.strftime("%Y-%m-%d")
+                msg_content = (
+                    f"Hello {customer.name if customer else 'Customer'},\n\n"
+                    f"Your promised payment of ₹{broken_promise.promised_amount_paise/100:,.2f} for invoice {inv_ref} "
+                    f"was due on {due_str}.\n\n"
+                    f"Our records do not yet show a verified payment.\n\n"
+                    f"Please complete the payment using the merchant's payment instructions.\n\n"
+                    f"Regards,\n{merchant_name}"
+                )
+                msg_type = "PROMISE_REMINDER"
+            elif case.invoice:
+                inv_ref = case.invoice.external_invoice_id or case.invoice_id or "N/A"
+                due_str = case.invoice.due_at.strftime("%Y-%m-%d") if case.invoice.due_at else "passed"
+                msg_content = f"Payment Reminder: Invoice {inv_ref} for ₹{case.amount_at_risk_paise/100:,.2f} is overdue (due date: {due_str}). Please process payment.\n\nRegards,\n{merchant_name}"
+                msg_type = "INVOICE_REMINDER"
+            elif case.subscription_id:
+                msg_content = f"Please update your payment instrument for subscription {case.subscription_id}.\n\nRegards,\n{merchant_name}"
+                msg_type = "CUSTOMER_ACTION"
+            else:
+                msg_content = f"Payment reminder for outstanding amount ₹{case.amount_at_risk_paise/100:,.2f}.\n\nRegards,\n{merchant_name}"
+                msg_type = "PAYMENT_REMINDER"
+
+            notif_status = "PENDING" if recipient_addr != "unknown" else "FAILED"
+            notif_fail = None if recipient_addr != "unknown" else "Notification not configured"
+
+            notif = Notification(
+                merchant_id=case.merchant_id,
+                case_id=case.id,
+                channel="EMAIL",
+                provider="RESEND",
+                message_type=msg_type,
+                recipient=recipient_addr,
+                content=msg_content,
+                status=notif_status,
+                failure_reason=notif_fail,
+                provider_reference=None
+            )
+            db.add(notif)
+            db.flush() # ensure notif has an ID
+            
+            if notif_status == "PENDING":
+                send_email_notification(db, notif)
+                if notif.status == "FAILED":
+                    audit_reason = f"Failed to send email to {recipient_addr}: {notif.failure_reason}"
+                    audit_event = f"{action_type}_FAILED"        
     elif action_type in ["MONITOR", "WAIT", "FOLLOW_UP"]:
         response_payload = {"status": "scheduled", "action": action_type}
         audit_event = "MONITORING_SCHEDULED"
@@ -416,7 +482,7 @@ def handle_payment_recovered(
     # Update linked promise if present
     if getattr(case, 'promises', None):
         for p in case.promises:
-            if p.status in ("ACTIVE", "PARTIALLY_FULFILLED", "BROKEN"):
+            if p.status in ("PROMISED", "PARTIALLY_FULFILLED", "BROKEN"):
                 p.fulfilled_amount_paise += paid_amount_paise
                 p.fulfilled_at = datetime.now(timezone.utc)
                 if p.fulfilled_amount_paise >= p.promised_amount_paise:

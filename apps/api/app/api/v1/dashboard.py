@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
@@ -59,6 +60,20 @@ def get_dashboard_summary(
             cust_name = c.revenue_event.customer.name
             cust_email = c.revenue_event.customer.email
         
+        ext_inv_id = None
+        due_at = None
+        days_od = None
+        if c.invoice:
+            ext_inv_id = c.invoice.external_invoice_id
+            due_at = c.invoice.due_at
+            if due_at:
+                now = datetime.now(timezone.utc)
+                d_at = due_at if due_at.tzinfo else due_at.replace(tzinfo=timezone.utc)
+                if now > d_at:
+                    days_od = (now - d_at).days
+        elif c.revenue_event and c.revenue_event.raw_payload and "days_overdue" in c.revenue_event.raw_payload:
+            days_od = c.revenue_event.raw_payload["days_overdue"]
+
         recent_items.append(
             RecoveryCaseListItem(
                 id=c.id,
@@ -80,6 +95,10 @@ def get_dashboard_summary(
                 subscription_id=c.subscription_id,
                 billing_cycle_id=c.billing_cycle_id,
                 provider_state=c.provider_state,
+                invoice_id=c.invoice_id,
+                external_invoice_id=ext_inv_id,
+                invoice_due_at=due_at,
+                days_overdue=days_od,
                 created_at=c.created_at,
                 updated_at=c.updated_at
             )

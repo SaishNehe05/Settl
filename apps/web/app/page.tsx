@@ -12,7 +12,7 @@ import {
   Zap,
   ArrowRight
 } from "lucide-react";
-import { fetchDashboardSummary } from "@/lib/api";
+import { fetchDashboardSummary, fetchReceivablesStatus } from "@/lib/api";
 import { formatINR, formatPercent, formatDate } from "@/lib/utils";
 import StatusBadge from "@/components/cases/status-badge";
 import { MerchantName } from "@/components/auth/merchant-name";

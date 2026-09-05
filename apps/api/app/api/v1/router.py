@@ -8,6 +8,7 @@ from app.api.v1.webhooks import router as webhooks_router
 from app.api.v1.checkout import router as checkout_router
 from app.api.v1.demo import router as demo_router
 from app.api.v1.evaluation import router as evaluation_router
+from app.api.v1.receivables import router as receivables_router
 
 api_v1_router = APIRouter()
 
@@ -19,4 +20,5 @@ api_v1_router.include_router(events_router)
 api_v1_router.include_router(webhooks_router)
 api_v1_router.include_router(checkout_router)
 api_v1_router.include_router(demo_router)
+api_v1_router.include_router(receivables_router)
 api_v1_router.include_router(evaluation_router, prefix="/evaluation", tags=["evaluation"])

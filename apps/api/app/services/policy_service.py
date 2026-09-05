@@ -39,7 +39,7 @@ def evaluate_policy_guardrails(
     # 1.5 Promise to Pay rules
     promises = getattr(case, 'promises', [])
     if promises:
-        active_promise = next((p for p in promises if p.status == "ACTIVE"), None)
+        active_promise = next((p for p in promises if p.status == "PROMISED"), None)
         broken_promises = [p for p in promises if p.status == "BROKEN"]
         
         # If there's an active promise, we wait until the promise date

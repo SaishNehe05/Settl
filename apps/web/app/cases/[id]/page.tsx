@@ -11,7 +11,8 @@ import {
   ShieldCheck, 
   UserCheck, 
   Zap,
-  Info
+  Info,
+  CalendarDays
 } from "lucide-react";
 import { fetchCaseDetail, fetchPolicy } from "@/lib/api";
 import { formatINR, formatPercent, formatDate } from "@/lib/utils";
@@ -127,12 +128,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             )}
           </div>
           <div className="flex items-center gap-5">
-            <CaseActions 
-              caseId={caseDetail.id} 
-              status={caseDetail.status} 
-              eventType={caseDetail.event_type}
-              actualAction={caseDetail.actual_action}
-            />
+            <CaseActions caseDetail={caseDetail} />
             <div className="text-right">
               <div className="text-xs text-slate-400">Amount at Risk</div>
               <div className="text-2xl font-bold text-white tracking-tight">
@@ -177,6 +173,62 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
           })}
         </div>
       </div>
+
+      {/* Promise to Pay Banner */}
+      {caseDetail.promises && caseDetail.promises.length > 0 && (
+        <div className={`rounded-xl border p-5 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+          caseDetail.promises[0].status === 'BROKEN' ? 'border-rose-600/50 bg-rose-950/40' : 
+          caseDetail.promises[0].status === 'FULFILLED' ? 'border-emerald-600/50 bg-emerald-950/40' :
+          'border-indigo-600/50 bg-indigo-950/40'
+        }`}>
+          <div className="flex items-center gap-3.5">
+            <div className={`rounded-xl p-2.5 border ${
+              caseDetail.promises[0].status === 'BROKEN' ? 'bg-rose-500/20 border-rose-500/30' :
+              caseDetail.promises[0].status === 'FULFILLED' ? 'bg-emerald-500/20 border-emerald-500/30' :
+              'bg-indigo-500/20 border-indigo-500/30'
+            }`}>
+              <CalendarDays className={`h-6 w-6 ${
+                caseDetail.promises[0].status === 'BROKEN' ? 'text-rose-400' :
+                caseDetail.promises[0].status === 'FULFILLED' ? 'text-emerald-400' :
+                'text-indigo-400'
+              }`} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-white">
+                  {caseDetail.promises[0].status === 'BROKEN' ? 'Broken Promise' : 
+                   caseDetail.promises[0].status === 'FULFILLED' ? 'Promise Fulfilled' : 
+                   'Active Promise to Pay'}
+                </h3>
+                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-mono font-semibold border ${
+                  caseDetail.promises[0].status === 'PROMISED' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' :
+                  caseDetail.promises[0].status === 'BROKEN' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
+                  'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                }`}>
+                  {caseDetail.promises[0].status}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Customer promised to pay by {new Date(caseDetail.promises[0].promise_date).toLocaleDateString()}.
+              </p>
+            </div>
+          </div>
+          <div className="sm:text-right">
+            <span className={`text-xs ${
+              caseDetail.promises[0].status === 'BROKEN' ? 'text-rose-300/80' :
+              caseDetail.promises[0].status === 'FULFILLED' ? 'text-emerald-300/80' :
+              'text-indigo-300/80'
+            }`}>Promised Amount</span>
+            <div className={`text-2xl font-extrabold font-mono ${
+              caseDetail.promises[0].status === 'BROKEN' ? 'text-rose-400' :
+              caseDetail.promises[0].status === 'FULFILLED' ? 'text-emerald-400' :
+              'text-indigo-400'
+            }`}>
+              {formatINR(caseDetail.promises[0].promised_amount_paise)}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Phase 4: Verified Recovery Banner */}
       {caseDetail.status === "RECOVERED" && (
@@ -286,6 +338,12 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
         </h3>
         <p className="text-sm text-slate-300 leading-relaxed font-medium">
           {(() => {
+            if (caseDetail.invoice_id) {
+              if (caseDetail.status === "ESCALATED") return "High-value or aged overdue receivable routed to senior merchant review. No automated debit initiated.";
+              if (caseDetail.status === "WAITING_RESULT") return "Invoice reminder dispatched to customer billing contact. Awaiting verified payment receipt.";
+              if (caseDetail.status === "RECOVERED") return "Full invoice payment verified and reconciled with merchant ledger.";
+              if (caseDetail.status === "PARTIALLY_RECOVERED") return "Partial invoice payment recorded. Case remains open for outstanding balance.";
+            }
             if (caseDetail.subscription_id && caseDetail.status === "WAITING_RESULT" || caseDetail.status === "READY") {
               if (caseDetail.provider_state === 'pending') return "Subscription is in Razorpay's native retry loop. Waiting for Razorpay to successfully debit the customer.";
               if (caseDetail.provider_state === 'halted') return "Subscription native retries exhausted. Customer action is required to update payment method.";
@@ -399,6 +457,39 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
                   <span className="rounded px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-800 text-slate-300 uppercase">
                     State: {caseDetail.provider_state}
                   </span>
+                </div>
+              </div>
+            )}
+            {caseDetail.invoice_id && (
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <div className="text-slate-500 font-semibold uppercase tracking-wider text-[10px] text-indigo-400">
+                  B2B Receivable Context
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                  <div>
+                    <span className="text-slate-500">Invoice ID</span>
+                    <div className="text-slate-200 font-mono font-medium truncate" title={caseDetail.external_invoice_id || caseDetail.invoice_id}>
+                      {caseDetail.external_invoice_id || caseDetail.invoice_id}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Due Date</span>
+                    <div className="text-slate-200 font-medium">
+                      {caseDetail.invoice_due_at ? formatDate(caseDetail.invoice_due_at) : "Exceeded"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Days Overdue</span>
+                    <div className="text-amber-400 font-semibold">
+                      {caseDetail.days_overdue != null ? `${caseDetail.days_overdue} days` : "Past Due"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Invoice Amount</span>
+                    <div className="text-slate-200 font-mono">
+                      {caseDetail.invoice_amount_paise ? formatINR(caseDetail.invoice_amount_paise) : formatINR(caseDetail.amount_at_risk_paise)}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

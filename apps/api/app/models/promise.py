@@ -15,7 +15,7 @@ class Promise(Base):
     
     promised_amount_paise = Column(Integer, nullable=False)
     promise_date = Column(DateTime(timezone=True), nullable=False)
-    status = Column(String, default="ACTIVE", nullable=False)  # ACTIVE, FULFILLED, PARTIALLY_FULFILLED, BROKEN, CANCELLED, SUPERSEDED
+    status = Column(String, default="PROMISED", nullable=False)  # PROMISED, FULFILLED, PARTIALLY_FULFILLED, BROKEN, CANCELLED
     created_by = Column(String, nullable=True, default="MERCHANT") # System/source that created the promise
     
     fulfilled_amount_paise = Column(Integer, default=0, nullable=False)

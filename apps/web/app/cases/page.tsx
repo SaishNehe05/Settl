@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Filter, Search } from "lucide-react";
-import { fetchRecoveryCases } from "@/lib/api";
+import { fetchRecoveryCases, fetchReceivablesStatus } from "@/lib/api";
 import { formatINR, formatPercent, formatDate } from "@/lib/utils";
 import StatusBadge from "@/components/cases/status-badge";
 
@@ -12,7 +12,10 @@ export const revalidate = 0;
 
 export default async function CasesPage({ searchParams }: CasesPageProps) {
   const { status } = await searchParams;
-  const cases = await fetchRecoveryCases(status);
+  const [cases, receivablesStatus] = await Promise.all([
+    fetchRecoveryCases(status),
+    fetchReceivablesStatus(),
+  ]);
 
   const statusFilters = [
     { label: "All Cases", value: "" },
@@ -31,6 +34,26 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
           Inspect and manage individual revenue-loss recovery units across the pipeline.
         </p>
       </div>
+
+      {/* Receivables Integration State Banner (Section 28) */}
+      {!receivablesStatus.connected && (
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-amber-500/10 p-2 border border-amber-500/20 text-amber-400 font-semibold font-mono text-[11px]">
+              B2B
+            </div>
+            <div>
+              <div className="font-semibold text-slate-200">Receivables integration not connected</div>
+              <div className="text-slate-400 mt-0.5">
+                No external ERP / accounting integration connected yet. Ingest real invoice events via <code className="text-sky-400 font-mono">POST /api/v1/receivables/events</code>.
+              </div>
+            </div>
+          </div>
+          <span className="rounded-full bg-slate-800/80 px-2.5 py-1 text-[10px] font-mono text-slate-400 border border-slate-700/60 whitespace-nowrap">
+            0 Invoices Tracked
+          </span>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
@@ -98,6 +121,21 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
                             <span className="text-[10px] text-slate-400 font-mono truncate max-w-[120px]" title={c.subscription_id}>
                               {c.subscription_id}
                             </span>
+                          </>
+                        )}
+                        {c.invoice_id && (
+                          <>
+                            <span className="rounded px-1.5 py-0.5 text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                              OVERDUE RECEIVABLE
+                            </span>
+                            <span className="text-[10px] text-slate-300 font-mono truncate max-w-[140px]" title={c.external_invoice_id || c.invoice_id}>
+                              Inv: {c.external_invoice_id || c.invoice_id}
+                            </span>
+                            {c.days_overdue != null && (
+                              <span className="text-[10px] text-amber-400/90 font-medium">
+                                {c.days_overdue} {c.days_overdue === 1 ? 'day' : 'days'} overdue
+                              </span>
+                            )}
                           </>
                         )}
                       </div>

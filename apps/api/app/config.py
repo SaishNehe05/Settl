@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "openai"
     LLM_API_KEY: str = ""
     LLM_MODEL: str = "gpt-4o-mini"
+    
+    # Resend (Phase 5)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
 
     # Checkout Engine
     CHECKOUT_ABANDONMENT_MINUTES: int = 15

@@ -66,14 +66,15 @@ def _generate_grounded_fallback(
         sentiment_risk = "MEDIUM"
         channel = "WHATSAPP"
         delay = 30
-    elif any(k in reason for k in ["invoice", "overdue", "receivable", "b2b", "net_"]):
+    elif event.event_type == "INVOICE_OVERDUE" or any(k in reason for k in ["invoice", "overdue", "receivable", "b2b", "net_"]):
         category: FailureCategory = "B2B_OVERDUE"
-        summary = f"B2B invoice overdue. Outstanding receivable of ₹{amount/100:,.2f} requires structured collection follow-up."
+        days_od = event.raw_payload.get("days_overdue", 1) if event.raw_payload else 1
+        summary = f"Invoice remains unpaid after the due date. Outstanding receivable of ₹{amount/100:,.2f}."
         evidence = [
-            f"Invoice/receivable amount: ₹{amount/100:,.2f}",
-            f"Failure reason: '{event.failure_reason}'",
+            f"Invoice amount: ₹{amount/100:,.2f}",
+            f"Days overdue: {days_od}",
             f"Business customer: '{customer.name}'",
-            "Payment terms likely exceeded — multi-step chaser sequence recommended",
+            "Payment has not been recorded by merchant receivables system",
         ]
         sentiment_risk = "LOW"
         channel = "EMAIL"
@@ -101,7 +102,7 @@ def _generate_grounded_fallback(
         sentiment_risk = "MEDIUM"
         channel = "IVR"
         delay = 60
-    elif any(k in reason for k in ["promise", "acknowledged", "committed", "will_pay"]) or (case.promises and any(p.status in ["ACTIVE", "BROKEN"] for p in case.promises)):
+    elif any(k in reason for k in ["promise", "acknowledged", "committed", "will_pay"]) or (case.promises and any(p.status in ["PROMISED", "BROKEN"] for p in case.promises)):
         category = "PROMISE_TO_PAY"
         summary = "Customer acknowledged outstanding amount and committed to pay by a specific date. Promise tracking initiated."
         evidence = [
@@ -192,18 +193,18 @@ def _generate_grounded_fallback(
             delay_minutes=0,
             reasoning=f"Case reached maximum attempt ceiling ({case.attempt_count} attempts). Halting to prevent spam.",
         )
-    elif category == "B2B_OVERDUE" and amount > 10000000:
+    elif category == "B2B_OVERDUE" and amount > 1000000:
         decision = RecoveryDecisionOutput(
             recommended_action="ESCALATE",
             channel="EMAIL",
             delay_minutes=0,
-            reasoning=f"B2B receivable of ₹{amount/100:,.2f} exceeds ₹1,00,000 threshold. Requires senior review and structured collection.",
+            reasoning=f"B2B receivable of ₹{amount/100:,.2f} exceeds automated threshold. Requires merchant review.",
         )
     elif category == "B2B_OVERDUE":
         days_overdue = event.raw_payload.get("days_overdue", 1) if event.raw_payload else 1
         if days_overdue >= 7:
-            action = "CREATE_COLLECTION_CASE"
-            reason = f"B2B invoice is {days_overdue} days overdue. Escalating to human collections queue."
+            action = "ESCALATE"
+            reason = f"B2B invoice is {days_overdue} days overdue. Escalating to merchant review."
         elif days_overdue >= 3:
             action = "SEND_FOLLOW_UP"
             reason = f"B2B invoice is {days_overdue} days overdue. Sending structured follow-up."
@@ -255,7 +256,7 @@ def _generate_grounded_fallback(
         )
     elif category == "PROMISE_TO_PAY":
         promises = case.promises
-        active_promise = next((p for p in promises if p.status == "ACTIVE"), None)
+        active_promise = next((p for p in promises if p.status == "PROMISED"), None)
         broken_promises = [p for p in promises if p.status == "BROKEN"]
         
         if active_promise:
@@ -356,7 +357,7 @@ def analyze_and_decide(
     # Inject promise history
     promises = case.promises
     if promises:
-        active_promise = next((p for p in promises if p.status == "ACTIVE"), None)
+        active_promise = next((p for p in promises if p.status == "PROMISED"), None)
         broken_promises = [p for p in promises if p.status == "BROKEN"]
         fulfilled_promises = [p for p in promises if p.status == "FULFILLED"]
         

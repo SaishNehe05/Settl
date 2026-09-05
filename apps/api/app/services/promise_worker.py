@@ -15,7 +15,7 @@ def _process_overdue_promises():
         # Find active promises that are past their promise date
         overdue_promises = (
             db.query(Promise)
-            .filter(Promise.status == "ACTIVE", Promise.promise_date <= now)
+            .filter(Promise.status == "PROMISED", Promise.promise_date <= now)
             .all()
         )
 
@@ -45,7 +45,7 @@ def _process_overdue_promises():
 
 async def promise_lifecycle_worker():
     """
-    Background worker that runs periodically to evaluate ACTIVE promises.
+    Background worker that runs periodically to evaluate PROMISED promises.
     """
     logger.info("Starting Promise lifecycle worker...")
     while True:

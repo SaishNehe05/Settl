@@ -1,4 +1,4 @@
-import { DashboardSummary, RecoveryCaseItem, RecoveryCaseDetail, Policy } from "@/types/api";
+import { DashboardSummary, RecoveryCaseItem, RecoveryCaseDetail, Policy, ReceivablesStatus } from "@/types/api";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { API_BASE } from "./config";
@@ -137,4 +137,46 @@ export async function updatePolicy(policy: Partial<Policy>): Promise<Policy> {
   });
   if (!res.ok) throw new Error("Failed to update policy");
   return await res.json();
+}
+
+export async function fetchReceivablesStatus(): Promise<ReceivablesStatus> {
+  let token = null;
+  if (typeof window !== "undefined") {
+    token = localStorage.getItem("settl_token");
+  } else {
+    try {
+      const cookieStore = await cookies();
+      token = cookieStore.get("settl_token")?.value;
+    } catch (e) {}
+  }
+
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/receivables/status`, {
+      cache: "no-store",
+      headers,
+    });
+    if (!res.ok) {
+      return {
+        connected: false,
+        status_text: "Receivables integration not connected",
+        invoice_count: 0,
+        overdue_count: 0,
+        paid_count: 0,
+        supported_events: ["INVOICE_CREATED", "INVOICE_DUE", "INVOICE_OVERDUE", "INVOICE_PAID"],
+      };
+    }
+    return await res.json();
+  } catch (err) {
+    return {
+      connected: false,
+      status_text: "Receivables integration not connected",
+      invoice_count: 0,
+      overdue_count: 0,
+      paid_count: 0,
+      supported_events: ["INVOICE_CREATED", "INVOICE_DUE", "INVOICE_OVERDUE", "INVOICE_PAID"],
+    };
+  }
 }

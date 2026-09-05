@@ -63,10 +63,15 @@ def _process_overdue_invoices():
                     event_type="INVOICE_OVERDUE",
                     amount_paise=invoice.amount_paise - invoice.paid_amount_paise,
                     currency=invoice.currency,
-                    failure_reason="B2B invoice is overdue past its terms",
+                    failure_reason="Invoice remains unpaid after the due date",
                     source="receivable_monitor",
                     occurred_at=now,
-                    raw_payload={"days_overdue": (now - invoice.due_at).days}
+                    raw_payload={
+                        "days_overdue": max(1, (now - (invoice.due_at if invoice.due_at.tzinfo else invoice.due_at.replace(tzinfo=timezone.utc))).days),
+                        "invoice_id": invoice.external_invoice_id or invoice.id,
+                        "total_amount_paise": invoice.amount_paise,
+                        "paid_amount_paise": invoice.paid_amount_paise,
+                    }
                 )
                 
                 # 3. Ingest event which automatically provisions the RecoveryCase and runs AI + Policy

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Any, Dict
 from datetime import datetime
+from app.schemas.promise import PromiseResponse
 
 
 class AuditLogResponse(BaseModel):
@@ -60,6 +61,10 @@ class RecoveryCaseListItem(BaseModel):
     subscription_id: Optional[str] = None
     billing_cycle_id: Optional[str] = None
     provider_state: Optional[str] = None
+    invoice_id: Optional[str] = None
+    external_invoice_id: Optional[str] = None
+    invoice_due_at: Optional[datetime] = None
+    days_overdue: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -113,8 +118,15 @@ class RecoveryCaseDetail(BaseModel):
     subscription_id: Optional[str] = None
     billing_cycle_id: Optional[str] = None
     provider_state: Optional[str] = None
+    invoice_id: Optional[str] = None
+    external_invoice_id: Optional[str] = None
+    invoice_due_at: Optional[datetime] = None
+    days_overdue: Optional[int] = None
+    invoice_amount_paise: Optional[int] = None
+    invoice_paid_amount_paise: Optional[int] = None
     actions: List[RecoveryActionResponse] = []
     audit_logs: List[AuditLogResponse] = []
+    promises: List[PromiseResponse] = []
     latest_prediction: Optional[ModelPredictionResponse] = None
 
     model_config = {"from_attributes": True}

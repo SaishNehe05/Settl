@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime, timezone
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -45,6 +46,20 @@ def list_recovery_cases(
             cust_name = c.revenue_event.customer.name
             cust_email = c.revenue_event.customer.email
             
+        ext_inv_id = None
+        due_at = None
+        days_od = None
+        if c.invoice:
+            ext_inv_id = c.invoice.external_invoice_id
+            due_at = c.invoice.due_at
+            if due_at:
+                now = datetime.now(timezone.utc)
+                d_at = due_at if due_at.tzinfo else due_at.replace(tzinfo=timezone.utc)
+                if now > d_at:
+                    days_od = (now - d_at).days
+        elif c.revenue_event and c.revenue_event.raw_payload and "days_overdue" in c.revenue_event.raw_payload:
+            days_od = c.revenue_event.raw_payload["days_overdue"]
+
         items.append(
             RecoveryCaseListItem(
                 id=c.id,
@@ -66,6 +81,10 @@ def list_recovery_cases(
                 subscription_id=c.subscription_id,
                 billing_cycle_id=c.billing_cycle_id,
                 provider_state=c.provider_state,
+                invoice_id=c.invoice_id,
+                external_invoice_id=ext_inv_id,
+                invoice_due_at=due_at,
+                days_overdue=days_od,
                 created_at=c.created_at,
                 updated_at=c.updated_at
             )
@@ -173,6 +192,29 @@ def get_recovery_case(
     if c.revenue_event:
         payment_id_val = getattr(c.revenue_event, 'payment_id', None)
 
+    ext_inv_id = None
+    due_at = None
+    days_od = None
+    inv_amount_paise = None
+    inv_paid_amount_paise = None
+    if c.invoice:
+        ext_inv_id = c.invoice.external_invoice_id
+        due_at = c.invoice.due_at
+        inv_amount_paise = c.invoice.amount_paise
+        inv_paid_amount_paise = c.invoice.paid_amount_paise
+        if due_at:
+            now = datetime.now(timezone.utc)
+            d_at = due_at if due_at.tzinfo else due_at.replace(tzinfo=timezone.utc)
+            if now > d_at:
+                days_od = (now - d_at).days
+    elif c.revenue_event and c.revenue_event.raw_payload and "days_overdue" in c.revenue_event.raw_payload:
+        days_od = c.revenue_event.raw_payload["days_overdue"]
+
+    promises_resp = [
+        PromiseResponse.model_validate(p)
+        for p in getattr(c, 'promises', [])
+    ]
+
     return RecoveryCaseDetail(
         id=c.id,
         merchant_id=c.merchant_id,
@@ -201,8 +243,15 @@ def get_recovery_case(
         subscription_id=c.subscription_id,
         billing_cycle_id=c.billing_cycle_id,
         provider_state=c.provider_state,
+        invoice_id=c.invoice_id,
+        external_invoice_id=ext_inv_id,
+        invoice_due_at=due_at,
+        days_overdue=days_od,
+        invoice_amount_paise=inv_amount_paise,
+        invoice_paid_amount_paise=inv_paid_amount_paise,
         actions=actions,
         audit_logs=audit_logs,
+        promises=promises_resp,
         latest_prediction=latest_pred_resp,
     )
 
@@ -301,7 +350,6 @@ def record_promise(
     from datetime import datetime, timezone
     from dateutil.parser import parse
     from app.models.promise import Promise
-    from app.services.recovery_service import execute_approved_action
     from app.services.audit_service import log_audit_event
     
     c = db.query(RecoveryCase).filter(
@@ -316,19 +364,34 @@ def record_promise(
 
     promise_dt = parse(req.promise_date)
     
+    # Use trusted amount from the actual case, NOT the request
+    trusted_amount_paise = c.invoice.amount_paise if c.invoice else c.amount_at_risk_paise
+    
     promise = Promise(
+        merchant_id=current_merchant.id,
         case_id=c.id,
         customer_id=c.revenue_event.customer_id,
-        promised_amount_paise=req.amount_paise,
+        invoice_id=c.invoice_id,
+        promised_amount_paise=trusted_amount_paise,
         promise_date=promise_dt,
         status="PROMISED"
     )
     db.add(promise)
+    db.flush() # ensure promise.id is generated
     
-    # We execute the action via the common action engine
-    c.actual_action = "RECORD_PROMISE"
+    log_audit_event(
+        db=db,
+        merchant_id=current_merchant.id,
+        case_id=c.id,
+        actor="MERCHANT_OPERATOR",
+        event_name="PROMISE_TO_PAY_CREATED",
+        reason=f"Recorded customer promise to pay ₹{trusted_amount_paise/100:,.2f} by {promise_dt.strftime('%Y-%m-%d')}.",
+        metadata={
+            "promise_id": promise.id,
+            "promised_amount_paise": trusted_amount_paise,
+            "promise_date": promise_dt.isoformat()
+        }
+    )
     db.commit()
-    
-    execute_approved_action(db, case_id)
     
     return get_recovery_case(case_id, current_merchant, db)

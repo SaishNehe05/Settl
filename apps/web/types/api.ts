@@ -49,6 +49,10 @@ export interface RecoveryCaseItem {
   subscription_id?: string;
   billing_cycle_id?: string;
   provider_state?: string;
+  invoice_id?: string;
+  external_invoice_id?: string;
+  invoice_due_at?: string;
+  days_overdue?: number;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +71,23 @@ export interface ModelPrediction {
   created_at: string;
 }
 
+export interface PromiseResponse {
+  id: string;
+  merchant_id: string;
+  case_id: string;
+  customer_id: string;
+  invoice_id?: string;
+  promised_amount_paise: number;
+  promise_date: string;
+  status: string;
+  created_by?: string;
+  fulfilled_amount_paise: number;
+  fulfilled_at?: string;
+  broken_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface RecoveryCaseDetail extends RecoveryCaseItem {
   resolved_at?: string;
   payment_link_id?: string;
@@ -76,9 +97,22 @@ export interface RecoveryCaseDetail extends RecoveryCaseItem {
   customer?: Customer;
   event_type?: string;
   failure_reason?: string;
+  invoice_amount_paise?: number;
+  invoice_paid_amount_paise?: number;
   actions: RecoveryAction[];
   audit_logs: AuditLog[];
+  promises?: PromiseResponse[];
   latest_prediction?: ModelPrediction;
+}
+
+export interface ReceivablesStatus {
+  connected: boolean;
+  status_text: string;
+  invoice_count: number;
+  overdue_count: number;
+  paid_count: number;
+  last_event_at?: string;
+  supported_events: string[];
 }
 
 export interface DashboardSummary {
