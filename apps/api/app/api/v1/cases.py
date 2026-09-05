@@ -14,6 +14,7 @@ from app.schemas.recovery_case import (
     AuditLogResponse,
     CustomerResponse,
     ModelPredictionResponse,
+    ManualCaseRequest,
 )
 from app.schemas.promise import PromiseCreate, PromiseResponse
 from app.api.deps import get_current_merchant
@@ -395,3 +396,93 @@ def record_promise(
     db.commit()
     
     return get_recovery_case(case_id, current_merchant, db)
+
+@router.post("/manual", response_model=RecoveryCaseDetail)
+def create_manual_case(
+    request: ManualCaseRequest,
+    current_merchant: Merchant = Depends(get_current_merchant),
+    db: Session = Depends(get_db)
+):
+    from app.models.customer import Customer
+    from app.models.revenue_event import RevenueEvent
+    from app.models.promise import Promise
+    from app.services.audit_service import log_audit_event
+    
+    # Try to find existing customer by email
+    customer = None
+    if request.customer_email:
+        customer = db.query(Customer).filter_by(merchant_id=current_merchant.id, email=request.customer_email).first()
+    
+    if not customer:
+        customer = Customer(
+            merchant_id=current_merchant.id,
+            name=request.customer_name,
+            email=request.customer_email or "unknown@example.com",
+            phone=request.customer_phone
+        )
+        db.add(customer)
+        db.flush()
+
+    # Create Revenue Event
+    revenue_event = RevenueEvent(
+        merchant_id=current_merchant.id,
+        customer_id=customer.id,
+        event_type="MANUAL_ENTRY",
+        provider_state="failed",
+        amount_paise=request.amount_paise,
+        failure_reason=request.notes or "Manual offline promise",
+        raw_payload={"notes": request.notes}
+    )
+    db.add(revenue_event)
+    db.flush()
+
+    # Create Recovery Case
+    new_case = RecoveryCase(
+        merchant_id=current_merchant.id,
+        revenue_event_id=revenue_event.id,
+        amount_at_risk_paise=request.amount_paise,
+        status="WAITING_RESULT", # Directly to waiting since there's an active promise
+        priority="HIGH",
+        recovery_probability=0.8,
+        root_cause="OFFLINE_AGREEMENT",
+        recommended_action="WAIT",
+        attempt_count=0
+    )
+    db.add(new_case)
+    db.flush()
+
+    # Create Promise
+    promise_dt = datetime.fromisoformat(request.promise_date).replace(tzinfo=timezone.utc)
+    promise = Promise(
+        merchant_id=current_merchant.id,
+        case_id=new_case.id,
+        customer_id=customer.id,
+        promised_amount_paise=request.amount_paise,
+        promise_date=promise_dt,
+        status="PROMISED"
+    )
+    db.add(promise)
+    db.flush()
+
+    # Audit Events
+    log_audit_event(
+        db=db,
+        merchant_id=current_merchant.id,
+        case_id=new_case.id,
+        actor="MERCHANT_OPERATOR",
+        event_name="MANUAL_CASE_CREATED",
+        reason=f"Created manual case for offline promise of ₹{request.amount_paise/100:,.2f}.",
+    )
+    log_audit_event(
+        db=db,
+        merchant_id=current_merchant.id,
+        case_id=new_case.id,
+        actor="MERCHANT_OPERATOR",
+        event_name="PROMISE_TO_PAY_CREATED",
+        reason=f"Recorded customer promise to pay by {promise_dt.strftime('%Y-%m-%d')}.",
+        metadata={"promise_id": promise.id, "promise_date": promise_dt.isoformat()}
+    )
+
+    db.commit()
+    
+    return get_recovery_case(new_case.id, current_merchant, db)

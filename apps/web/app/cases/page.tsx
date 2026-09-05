@@ -3,6 +3,7 @@ import { ArrowRight, Filter, Search } from "lucide-react";
 import { fetchRecoveryCases, fetchReceivablesStatus } from "@/lib/api";
 import { formatINR, formatPercent, formatDate } from "@/lib/utils";
 import StatusBadge from "@/components/cases/status-badge";
+import CreateManualCaseButton from "@/components/cases/create-manual-case-button";
 
 interface CasesPageProps {
   searchParams: Promise<{ status?: string }>;
@@ -28,11 +29,14 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Recovery Queue</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Inspect and manage individual revenue-loss recovery units across the pipeline.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Recovery Queue</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Inspect and manage individual revenue-loss recovery units across the pipeline.
+          </p>
+        </div>
+        <CreateManualCaseButton />
       </div>
 
       {/* Receivables Integration State Banner (Section 28) */}

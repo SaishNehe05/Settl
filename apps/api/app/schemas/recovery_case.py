@@ -139,3 +139,12 @@ class CaseActionRunRequest(BaseModel):
 
 class CaseDecisionRequest(BaseModel):
     reason: Optional[str] = None
+
+
+class ManualCaseRequest(BaseModel):
+    customer_name: str
+    customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
+    amount_paise: int
+    promise_date: str
+    notes: Optional[str] = None
