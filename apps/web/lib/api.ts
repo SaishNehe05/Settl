@@ -1,5 +1,6 @@
 import { DashboardSummary, RecoveryCaseItem, RecoveryCaseDetail, Policy } from "@/types/api";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { API_BASE } from "./config";
 
 export async function fetchDashboardSummary(mode?: string): Promise<DashboardSummary> {
@@ -23,6 +24,10 @@ export async function fetchDashboardSummary(mode?: string): Promise<DashboardSum
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const res = await fetch(url, { cache: "no-store", headers });
+  if (res.status === 401) {
+    
+    redirect("/login");
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Dashboard Fetch Failed (${res.status}): ${text.substring(0, 100)}`);
@@ -49,6 +54,10 @@ export async function fetchRecoveryCases(status?: string): Promise<RecoveryCaseI
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const res = await fetch(url, { cache: "no-store", headers });
+  if (res.status === 401) {
+    
+    redirect("/login");
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Cases Fetch Failed (${res.status}): ${text.substring(0, 100)}`);
@@ -75,6 +84,9 @@ export async function fetchCaseDetail(id: string): Promise<RecoveryCaseDetail | 
       cache: "no-store",
       headers,
     });
+    if (res.status === 401) {
+      redirect("/login");
+    }
     if (!res.ok) throw new Error(`Failed to fetch case ${id}`);
     return await res.json();
   } catch (err) {
@@ -98,6 +110,9 @@ export async function fetchPolicy(): Promise<Policy> {
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const res = await fetch(`${API_BASE}/api/v1/policies`, { cache: "no-store", headers });
+  if (res.status === 401) {
+    redirect("/login");
+  }
   if (!res.ok) throw new Error("Failed to fetch policy");
   return await res.json();
 }
