@@ -28,6 +28,9 @@ export function getMerchant(): MerchantInfo | null {
 export function setAuth(token: string, merchant: MerchantInfo): void {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(MERCHANT_KEY, JSON.stringify(merchant));
+  if (typeof document !== "undefined") {
+    document.cookie = `settl_token=${token}; path=/; max-age=86400`;
+  }
 }
 
 export function clearAuth(): void {
