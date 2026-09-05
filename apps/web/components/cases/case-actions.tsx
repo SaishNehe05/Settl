@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Play, ShieldAlert, X, AlertCircle, Link as LinkIcon, CalendarDays, X as XIcon } from "lucide-react";
 import { API_BASE } from "@/lib/config";
+import { authFetch } from "@/lib/auth";
 import { RecoveryCaseDetail } from "@/types/api";
 import { formatINR } from "@/lib/utils";
 
@@ -23,7 +24,7 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/evaluate`, {
+      const res = await authFetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/evaluate`, {
         method: "POST",
       });
       if (!res.ok) throw new Error("Evaluation failed");
@@ -39,7 +40,7 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/execute`, {
+      const res = await authFetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/execute`, {
         method: "POST",
       });
       if (!res.ok) throw new Error("Failed to generate payment link");
@@ -56,7 +57,7 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
     setError(null);
     try {
       const action = approved ? "approve" : "reject";
-      const res = await fetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/${action}`, {
+      const res = await authFetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: approved ? "Approved by operator" : "Rejected by operator" }),
@@ -79,7 +80,7 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/promise`, {
+      const res = await authFetch(`${API_BASE}/api/v1/recovery-cases/${caseId}/promise`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

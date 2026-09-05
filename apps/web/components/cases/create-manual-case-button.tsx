@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X as XIcon } from "lucide-react";
 import { API_BASE } from "@/lib/config";
+import { authFetch } from "@/lib/auth";
 
 export default function CreateManualCaseButton() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function CreateManualCaseButton() {
     setError(null);
     try {
       const amountPaise = Math.round(parseFloat(amountINR) * 100);
-      const res = await fetch(`${API_BASE}/api/v1/recovery-cases/manual`, {
+      const res = await authFetch(`${API_BASE}/api/v1/recovery-cases/manual`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
