@@ -35,8 +35,8 @@ flowchart TD
     subgraph Intelligence["2. AI Diagnosis & Calibrated Risk"]
         CASE --> RISK["Deterministic Baseline Risk Model"]
         RISK --> LLM["Structured AI Diagnostic Engine"]
-        LLM --> CAUSE["Root-Cause Classification\n(BANK_TECHNICAL, 2FA, SESSION)"]
-        LLM --> ACT["Bounded Decision Recommendation\n(CREATE_PAYMENT_LINK, STOP, WAIT)"]
+        LLM --> CAUSE["Root-Cause Classification<br>(BANK_TECHNICAL, 2FA, SESSION)"]
+        LLM --> ACT["Bounded Decision Recommendation<br>(CREATE_PAYMENT_LINK, STOP, WAIT)"]
     end
 
     subgraph Governance["3. Deterministic Policy Gate (Code Enforced)"]
@@ -48,7 +48,7 @@ flowchart TD
     end
 
     subgraph Execution["4. Razorpay Test Mode Execution"]
-        APP --> RZP["Razorpay Payment Links Service\n(Exact Paise Units)"]
+        APP --> RZP["Razorpay Payment Links Service<br>(Exact Paise Units)"]
         RZP --> LINK["Issue Active Payment Link (rzp.io/i/...)"]
         LINK --> WAIT["Status: WAITING_RESULT"]
     end
@@ -56,9 +56,9 @@ flowchart TD
     subgraph Verification["5. Cryptographic Proof of Recovery"]
         HOOK["Customer Pays via Payment Link"] --> RAW["Raw Webhook Payload Receiver"]
         RAW --> HMAC{"HMAC-SHA256 Signature Valid?"}
-        HMAC -- No --> REJ["HTTP 401: Rejected"]
-        HMAC -- Yes --> REC["Amount Check (paid >= risk)"]
-        REC --> TERM["Terminal State: RECOVERED\nEmerald Ledger Update"]
+        HMAC -- "No" --> REJ["HTTP 401: Rejected"]
+        HMAC -- "Yes" --> REC["Amount Check (paid >= risk)"]
+        REC --> TERM["Terminal State: RECOVERED<br>Emerald Ledger Update"]
     end
 ```
 
