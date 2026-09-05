@@ -17,18 +17,11 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { logout, merchant } = useAuth();
 
-  const links = [
-    { href: "/", label: "Overview", icon: LayoutDashboard },
-    { href: "/cases", label: "Recovery Queue", icon: Layers },
-    { href: "/policies", label: "Guardrails & Policy", icon: ShieldAlert },
-    { href: "/evaluation", label: "Batch Evaluation", icon: BarChart3 },
-  ];
-
   return (
-    <aside className="w-[240px] border-r border-slate-800/60 bg-slate-950/40 flex flex-col justify-between p-4 min-h-[calc(100vh-4rem)]">
+    <aside className="w-[240px] border-r border-slate-200 bg-white flex flex-col justify-between p-4 min-h-[calc(100vh-4rem)]">
       <div className="space-y-8">
         <div>
-          <div className="px-3 mb-2 text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">
+          <div className="px-3 mb-2 text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase">
             Workspace
           </div>
           <nav className="space-y-0.5">
@@ -43,13 +36,13 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                  className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                     isActive
-                      ? "bg-sky-500/10 text-sky-400 relative before:absolute before:inset-y-1 before:left-0 before:w-1 before:rounded-r before:bg-sky-500"
-                      : "text-slate-400 hover:bg-slate-900/50 hover:text-slate-200"
+                      ? "bg-indigo-50 text-indigo-700 relative before:absolute before:inset-y-1 before:left-0 before:w-1 before:rounded-r before:bg-indigo-600"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                   }`}
                 >
-                  <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-sky-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                  <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-500"}`} />
                   {item.label}
                 </Link>
               );
@@ -58,7 +51,7 @@ export default function Sidebar() {
         </div>
 
         <div>
-          <div className="px-3 mb-2 text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">
+          <div className="px-3 mb-2 text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase">
             Insights
           </div>
           <nav className="space-y-0.5">
@@ -71,13 +64,13 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                  className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                     isActive
-                      ? "bg-sky-500/10 text-sky-400 relative before:absolute before:inset-y-1 before:left-0 before:w-1 before:rounded-r before:bg-sky-500"
-                      : "text-slate-400 hover:bg-slate-900/50 hover:text-slate-200"
+                      ? "bg-indigo-50 text-indigo-700 relative before:absolute before:inset-y-1 before:left-0 before:w-1 before:rounded-r before:bg-indigo-600"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                   }`}
                 >
-                  <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-sky-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                  <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-500"}`} />
                   {item.label}
                 </Link>
               );
@@ -86,22 +79,22 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="space-y-1 pt-4 border-t border-slate-800/60">
+      <div className="space-y-1 pt-4 border-t border-slate-200">
         <button
           onClick={logout}
-          className="group flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-colors"
+          className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors"
         >
-          <LogOut className="h-4 w-4 text-slate-500 group-hover:text-rose-400 transition-colors" />
+          <LogOut className="h-4 w-4 text-slate-400 group-hover:text-rose-500 transition-colors" />
           Sign Out
         </button>
         <a
           href="http://localhost:8000/docs"
           target="_blank"
           rel="noreferrer"
-          className="group flex items-center justify-between rounded-md px-3 py-2 text-xs font-medium text-slate-400 hover:bg-slate-900/50 hover:text-slate-200 transition-colors"
+          className="group flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
         >
           <span className="flex items-center gap-2">
-            <FileCode2 className="h-4 w-4 text-slate-500 group-hover:text-slate-400 transition-colors" />
+            <FileCode2 className="h-4 w-4 text-slate-400 group-hover:text-slate-500 transition-colors" />
             API Docs
           </span>
         </a>

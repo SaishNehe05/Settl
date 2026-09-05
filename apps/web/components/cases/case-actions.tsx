@@ -101,7 +101,7 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
   return (
     <div className="space-y-2">
       {error && (
-        <div className="flex items-center gap-1.5 text-xs text-rose-400 bg-rose-950/40 p-2 rounded border border-rose-900">
+        <div className="flex items-center gap-1.5 text-xs text-rose-700 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
           <AlertCircle className="h-3.5 w-3.5" />
           {error}
         </div>
@@ -112,19 +112,19 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
           <button
             onClick={handleEvaluate}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
           >
-            <Play className="h-3.5 w-3.5 text-sky-400" />
+            <Play className="h-3.5 w-3.5 text-indigo-600" />
             {loading ? "Evaluating..." : "Run Policy Check"}
           </button>
         )}
 
-        {/* Phase 4: Execute Recovery Action when APPROVED */}
+        {/* Execute Recovery Action when APPROVED */}
         {status === "APPROVED" && (
           <button
             onClick={handleExecute}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-sky-500 transition-colors shadow-lg shadow-sky-600/25 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm disabled:opacity-50"
           >
             {actualAction === "CREATE_PAYMENT_LINK" ? (
               <><LinkIcon className="h-3.5 w-3.5" /> {loading ? "Generating..." : "Create Razorpay Payment Link"}</>
@@ -150,9 +150,9 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
           <button
             onClick={() => setShowPromiseModal(true)}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
           >
-            <Check className="h-3.5 w-3.5 text-sky-400" />
+            <Check className="h-3.5 w-3.5 text-indigo-600" />
             Record Promise to Pay
           </button>
         )}
@@ -163,7 +163,7 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
             <button
               onClick={() => handleReview(true)}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-600/20 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors shadow-sm disabled:opacity-50"
             >
               <Check className="h-3.5 w-3.5" />
               Approve Recovery
@@ -171,7 +171,7 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
             <button
               onClick={() => handleReview(false)}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-800 bg-rose-950/60 px-3 py-1.5 text-xs font-medium text-rose-300 hover:bg-rose-900 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-50"
             >
               <X className="h-3.5 w-3.5" />
               Reject & Stop
@@ -181,59 +181,57 @@ export default function CaseActions({ caseDetail }: CaseActionsProps) {
       </div>
 
       {showPromiseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Record Promise to Pay</h3>
-              <button onClick={() => setShowPromiseModal(false)} className="text-slate-400 hover:text-white">
+              <h3 className="text-base font-bold text-slate-900">Record Promise to Pay</h3>
+              <button onClick={() => setShowPromiseModal(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
                 <XIcon className="h-5 w-5" />
               </button>
             </div>
             
             <form onSubmit={handleRecordPromise} className="space-y-4">
-              <div className="space-y-3 text-sm text-slate-300 bg-slate-950 p-3 rounded-lg border border-slate-800">
+              <div className="space-y-2.5 text-sm bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Customer</span>
-                  <span className="font-medium text-white">{caseDetail.customer?.name || "Unknown"}</span>
+                  <span className="font-semibold text-slate-900">{caseDetail.customer?.name || "Unknown"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Invoice / Reference</span>
-                  <span className="font-mono text-white">{caseDetail.external_invoice_id || caseDetail.invoice_id || "N/A"}</span>
+                  <span className="font-mono text-slate-700 text-xs font-medium">{caseDetail.external_invoice_id || caseDetail.invoice_id || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Amount</span>
-                  <span className="font-mono text-sky-400 font-bold">
+                  <span className="font-mono text-indigo-700 font-bold">
                     {formatINR(caseDetail.invoice_amount_paise || caseDetail.amount_at_risk_paise)}
                   </span>
                 </div>
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Promised Date</label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    required
-                    min={new Date().toISOString().split('T')[0]}
-                    value={promiseDate}
-                    onChange={(e) => setPromiseDate(e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  />
-                </div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Promised Date</label>
+                <input
+                  type="date"
+                  required
+                  min={new Date().toISOString().split('T')[0]}
+                  value={promiseDate}
+                  onChange={(e) => setPromiseDate(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                />
               </div>
 
               <div className="pt-2 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setShowPromiseModal(false)}
-                  className="flex-1 rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+                  className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500 transition-colors shadow-lg shadow-sky-600/25 disabled:opacity-50"
+                  className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm disabled:opacity-50"
                 >
                   {loading ? "Saving..." : "Record Promise"}
                 </button>

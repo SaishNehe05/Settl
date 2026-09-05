@@ -29,23 +29,23 @@ export function formatDate(isoString: string): string {
 export function getStatusBadgeConfig(status: string): { bg: string; text: string; border: string } {
   switch (status?.toUpperCase()) {
     case "RECOVERED":
-      return { bg: "bg-emerald-950/70", text: "text-emerald-400", border: "border-emerald-800/80" };
+      return { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" };
     case "READY":
     case "APPROVED":
-      return { bg: "bg-sky-950/70", text: "text-sky-400", border: "border-sky-800/80" };
+      return { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" };
     case "EXECUTING":
     case "WAITING_RESULT":
     case "ANALYZING":
-      return { bg: "bg-indigo-950/70", text: "text-indigo-400", border: "border-indigo-800/80" };
+      return { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" };
     case "ESCALATED":
-      return { bg: "bg-amber-950/70", text: "text-amber-400", border: "border-amber-800/80" };
+      return { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" };
     case "BLOCKED":
     case "STOPPED":
     case "FAILED":
-      return { bg: "bg-rose-950/70", text: "text-rose-400", border: "border-rose-800/80" };
+      return { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" };
     case "NEW":
     default:
-      return { bg: "bg-slate-900", text: "text-slate-400", border: "border-slate-800" };
+      return { bg: "bg-slate-100", text: "text-slate-600", border: "border-slate-200" };
   }
 }
 

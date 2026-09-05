@@ -24,7 +24,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <Navbar />
             <div className="flex flex-1">
               <Sidebar />
-              <main className="flex-1 overflow-y-auto bg-slate-950 p-6 md:p-8">
+              <main className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8">
                 <div className="mx-auto max-w-7xl">{children}</div>
               </main>
             </div>
