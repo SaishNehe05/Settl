@@ -46,6 +46,9 @@ export interface RecoveryCaseItem {
   customer_name?: string;
   customer_email?: string;
   source?: string;
+  subscription_id?: string;
+  billing_cycle_id?: string;
+  provider_state?: string;
   created_at: string;
   updated_at: string;
 }

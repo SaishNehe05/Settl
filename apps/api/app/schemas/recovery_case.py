@@ -57,6 +57,9 @@ class RecoveryCaseListItem(BaseModel):
     customer_name: Optional[str] = None
     customer_email: Optional[str] = None
     source: Optional[str] = None
+    subscription_id: Optional[str] = None
+    billing_cycle_id: Optional[str] = None
+    provider_state: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -107,6 +110,9 @@ class RecoveryCaseDetail(BaseModel):
     failure_reason: Optional[str] = None
     source: Optional[str] = None
     payment_id: Optional[str] = None
+    subscription_id: Optional[str] = None
+    billing_cycle_id: Optional[str] = None
+    provider_state: Optional[str] = None
     actions: List[RecoveryActionResponse] = []
     audit_logs: List[AuditLogResponse] = []
     latest_prediction: Optional[ModelPredictionResponse] = None

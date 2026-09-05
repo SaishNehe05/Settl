@@ -120,6 +120,11 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             <span className={`rounded-md px-2 py-1 text-[10px] font-mono font-bold tracking-wider border ${caseDetail.source === 'synthetic' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
               Source: {caseDetail.source === 'synthetic' ? 'SYNTHETIC' : 'RAZORPAY TEST MODE'}
             </span>
+            {caseDetail.subscription_id && (
+              <span className="rounded-md px-2 py-1 text-[10px] font-mono font-bold tracking-wider border bg-amber-500/10 text-amber-400 border-amber-500/20 flex items-center gap-1.5">
+                SUBSCRIPTION {caseDetail.provider_state === 'halted' ? 'HALTED' : 'FAILED'}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-5">
             <CaseActions 
@@ -281,6 +286,10 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
         </h3>
         <p className="text-sm text-slate-300 leading-relaxed font-medium">
           {(() => {
+            if (caseDetail.subscription_id && caseDetail.status === "WAITING_RESULT" || caseDetail.status === "READY") {
+              if (caseDetail.provider_state === 'pending') return "Subscription is in Razorpay's native retry loop. Waiting for Razorpay to successfully debit the customer.";
+              if (caseDetail.provider_state === 'halted') return "Subscription native retries exhausted. Customer action is required to update payment method.";
+            }
             if (caseDetail.status === "WAITING_RESULT") return "Waiting for customer payment. A valid Razorpay Payment Link is active.";
             if (caseDetail.status === "RECOVERED") return "Payment confirmed and recovery verified.";
             if (caseDetail.status === "ESCALATED") return "Needs merchant review to proceed.";
@@ -381,6 +390,18 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             </div>
 
             {/* Structured Evidence Tags removed to reduce text density */}
+
+            {caseDetail.subscription_id && (
+              <div className="pt-2 border-t border-slate-800">
+                <div className="text-slate-500">Subscription Context</div>
+                <div className="text-slate-300 mt-1 flex items-center gap-2">
+                  <span className="font-mono">{caseDetail.subscription_id}</span>
+                  <span className="rounded px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-800 text-slate-300 uppercase">
+                    State: {caseDetail.provider_state}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div>
               <div className="text-slate-500">Decision Agent Recommendation</div>

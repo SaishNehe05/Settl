@@ -83,10 +83,23 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
                       <Link href={`/cases/${c.id}`} className="hover:text-sky-400 hover:underline">
                         {c.id}
                       </Link>
-                      <div className="mt-1">
+                      <div className="mt-1 flex flex-col gap-1 items-start">
                         <span className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold border ${c.source === 'simulation' || c.source === 'synthetic' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
                           {c.source === 'simulation' || c.source === 'synthetic' ? (c.source).toUpperCase() : 'RAZORPAY TEST MODE'}
                         </span>
+                        {c.subscription_id && (
+                          <>
+                            <span className="rounded px-1.5 py-0.5 text-[9px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                              SUBSCRIPTION {c.provider_state === 'halted' ? 'HALTED' : 'FAILED'}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-sans">
+                              State: <span className="text-slate-300 capitalize">{c.provider_state || 'unknown'}</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono truncate max-w-[120px]" title={c.subscription_id}>
+                              {c.subscription_id}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">

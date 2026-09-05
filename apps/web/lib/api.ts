@@ -25,8 +25,7 @@ export async function fetchDashboardSummary(mode?: string): Promise<DashboardSum
 
   const res = await fetch(url, { cache: "no-store", headers });
   if (res.status === 401) {
-    
-    redirect("/login");
+    redirect("/login?clear=1");
   }
   if (!res.ok) {
     const text = await res.text();
@@ -55,8 +54,7 @@ export async function fetchRecoveryCases(status?: string): Promise<RecoveryCaseI
 
   const res = await fetch(url, { cache: "no-store", headers });
   if (res.status === 401) {
-    
-    redirect("/login");
+    redirect("/login?clear=1");
   }
   if (!res.ok) {
     const text = await res.text();
@@ -85,7 +83,7 @@ export async function fetchCaseDetail(id: string): Promise<RecoveryCaseDetail | 
       headers,
     });
     if (res.status === 401) {
-      redirect("/login");
+      redirect("/login?clear=1");
     }
     if (!res.ok) throw new Error(`Failed to fetch case ${id}`);
     return await res.json();
@@ -111,7 +109,7 @@ export async function fetchPolicy(): Promise<Policy> {
 
   const res = await fetch(`${API_BASE}/api/v1/policies`, { cache: "no-store", headers });
   if (res.status === 401) {
-    redirect("/login");
+    redirect("/login?clear=1");
   }
   if (!res.ok) throw new Error("Failed to fetch policy");
   return await res.json();
