@@ -25,27 +25,31 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-800/80 bg-slate-950 flex flex-col justify-between p-4 min-h-[calc(100vh-4rem)]">
-      <div className="space-y-6">
+    <aside className="w-[240px] border-r border-slate-800/60 bg-slate-950/40 flex flex-col justify-between p-4 min-h-[calc(100vh-4rem)]">
+      <div className="space-y-8">
         <div>
-          <div className="px-3 py-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
-            Platform
+          <div className="px-3 mb-2 text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">
+            Workspace
           </div>
-          <nav className="space-y-1">
-            {links.map((item) => {
+          <nav className="space-y-0.5">
+            {[
+              { href: "/", label: "Overview", icon: LayoutDashboard },
+              { href: "/cases", label: "Recovery Queue", icon: Layers },
+              { href: "/policies", label: "Policies", icon: ShieldAlert },
+            ].map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                  className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all ${
                     isActive
-                      ? "bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-sm"
-                      : "text-slate-400 hover:bg-slate-900/60 hover:text-slate-200"
+                      ? "bg-sky-500/10 text-sky-400 relative before:absolute before:inset-y-1 before:left-0 before:w-1 before:rounded-r before:bg-sky-500"
+                      : "text-slate-400 hover:bg-slate-900/50 hover:text-slate-200"
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${isActive ? "text-sky-400" : "text-slate-400"}`} />
+                  <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-sky-400" : "text-slate-500 group-hover:text-slate-400"}`} />
                   {item.label}
                 </Link>
               );
@@ -53,47 +57,53 @@ export default function Sidebar() {
           </nav>
         </div>
 
-        {/* Core Principle Callout */}
-        <div className="rounded-xl border border-slate-800 bg-gradient-to-b from-slate-900/80 to-slate-950 p-3.5 text-xs text-slate-400">
-          <div className="flex items-center gap-1.5 font-semibold text-slate-200 mb-1.5">
-            <span>Operational Invariant</span>
+        <div>
+          <div className="px-3 mb-2 text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">
+            Insights
           </div>
-          <p className="text-[11px] leading-relaxed text-slate-400">
-            <strong className="text-sky-400">LLM recommends</strong>, deterministic policy code authorizes, Razorpay executes, verified webhooks confirm recovery.
-          </p>
+          <nav className="space-y-0.5">
+            {[
+              { href: "/evaluation", label: "Recovery Intelligence", icon: BarChart3 },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                    isActive
+                      ? "bg-sky-500/10 text-sky-400 relative before:absolute before:inset-y-1 before:left-0 before:w-1 before:rounded-r before:bg-sky-500"
+                      : "text-slate-400 hover:bg-slate-900/50 hover:text-slate-200"
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-sky-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
       </div>
 
-      <div className="space-y-2 pt-4 border-t border-slate-800/60">
-        {/* Merchant Info & Logout */}
-        <div className="mb-4">
-          <div className="mb-3 px-2">
-            <p className="text-xs font-medium text-slate-300 truncate">
-              {merchant?.name || "Acme Retail India"}
-            </p>
-            <p className="text-[10px] text-slate-500 truncate">
-              {merchant?.email || "admin@acme.in"}
-            </p>
-          </div>
-          <button
-            onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </button>
-        </div>
+      <div className="space-y-1 pt-4 border-t border-slate-800/60">
+        <button
+          onClick={logout}
+          className="group flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-colors"
+        >
+          <LogOut className="h-4 w-4 text-slate-500 group-hover:text-rose-400 transition-colors" />
+          Sign Out
+        </button>
         <a
           href="http://localhost:8000/docs"
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition-colors"
+          className="group flex items-center justify-between rounded-md px-3 py-2 text-xs font-medium text-slate-400 hover:bg-slate-900/50 hover:text-slate-200 transition-colors"
         >
           <span className="flex items-center gap-2">
-            <FileCode2 className="h-3.5 w-3.5 text-slate-400" />
-            FastAPI Swagger
+            <FileCode2 className="h-4 w-4 text-slate-500 group-hover:text-slate-400 transition-colors" />
+            API Docs
           </span>
-          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">:8000</span>
         </a>
       </div>
     </aside>

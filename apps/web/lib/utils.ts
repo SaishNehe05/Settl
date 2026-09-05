@@ -48,3 +48,57 @@ export function getStatusBadgeConfig(status: string): { bg: string; text: string
       return { bg: "bg-slate-900", text: "text-slate-400", border: "border-slate-800" };
   }
 }
+
+export function formatCaseStatus(status: string): string {
+  switch (status?.toUpperCase()) {
+    case 'WAITING_RESULT': return 'Waiting for outcome';
+    case 'READY': return 'Ready to recover';
+    case 'APPROVED': return 'Approved by policy';
+    case 'RECOVERED': return 'Recovered';
+    case 'PARTIALLY_RECOVERED': return 'Partially recovered';
+    case 'ESCALATED': return 'Needs human review';
+    case 'STOPPED': return 'Stopped by guardrails';
+    case 'BLOCKED': return 'Blocked';
+    case 'ACTION_PENDING': return 'Action pending';
+    case 'CUSTOMER_ACTION_REQUIRED': return 'Customer action required';
+    case 'VERIFICATION_FAILED': return 'Verification failed';
+    case 'ANALYZING': return 'AI analyzing';
+    case 'NEW': return 'New event detected';
+    case 'EXECUTING': return 'Taking action';
+    default: return status || 'Unknown status';
+  }
+}
+
+export function formatCaseType(type: string): string {
+  switch (type?.toUpperCase()) {
+    case 'PAYMENT_FAILURE': return 'Payment failed';
+    case 'CHECKOUT_ABANDONMENT': return 'Checkout abandoned';
+    case 'SUBSCRIPTION_FAILED': return 'Subscription payment failed';
+    case 'OVERDUE_RECEIVABLE': return 'Overdue receivable';
+    case 'PROMISE_TO_PAY': return 'Promise to pay';
+    case 'MANDATE_FAILURE': return 'Recurring payment issue';
+    case 'MANUAL_ENTRY': return 'Manual offline entry';
+    default: return type || 'Unknown event';
+  }
+}
+
+export function formatActionType(action: string): string {
+  switch (action?.toUpperCase()) {
+    case 'CREATE_PAYMENT_LINK': return 'Create payment link';
+    case 'SEND_REMINDER': return 'Send reminder email';
+    case 'SEND_FOLLOW_UP': return 'Send follow-up notification';
+    case 'SEND_PAYMENT_LINK': return 'Send payment link directly';
+    case 'CUSTOMER_ACTION_REQUIRED': return 'Prompt customer action';
+    case 'WAIT': return 'Monitor and wait';
+    case 'MONITOR': return 'Monitor transaction';
+    case 'FOLLOW_UP': return 'Schedule follow up';
+    case 'CREATE_COLLECTION_CASE': return 'Internal collection case';
+    case 'ESCALATE': return 'Escalate to human operator';
+    case 'STOP': return 'Stop recovery actions';
+    default: return action || 'Unknown action';
+  }
+}
+
+export function classNames(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(' ');
+}

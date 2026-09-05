@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { 
   ArrowLeft, 
+  ArrowRight,
   CheckCircle2, 
   Clock, 
   ExternalLink, 
@@ -12,7 +13,11 @@ import {
   UserCheck, 
   Zap,
   Info,
-  CalendarDays
+  CalendarDays,
+  Activity,
+  Ban,
+  ChevronRight,
+  ChevronDown
 } from "lucide-react";
 import { fetchCaseDetail, fetchPolicy } from "@/lib/api";
 import { formatINR, formatPercent, formatDate } from "@/lib/utils";
@@ -50,16 +55,10 @@ const formatRootCause = (cause: string | null | undefined) => {
     if (category === "INSUFFICIENT_FUNDS") readableCategory = "Insufficient funds";
     if (category === "FRAUD_SUSPICION") readableCategory = "Suspected fraud / Risk blocked";
     return (
-      <>
+      <div className="space-y-1">
         <div className="font-semibold text-slate-200">{readableCategory}</div>
-        <details className="mt-2 text-[10px] text-slate-500 cursor-pointer">
-          <summary className="hover:text-slate-400 select-none">View technical details</summary>
-          <div className="mt-1.5 p-2 bg-slate-950/50 rounded border border-slate-800/50">
-            <div>{desc}</div>
-            <div className="font-mono mt-1 text-[9px]">Code: {category}</div>
-          </div>
-        </details>
-      </>
+        <div className="text-slate-400 text-xs">{desc}</div>
+      </div>
     );
   }
   return cause;
@@ -74,453 +73,184 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     notFound();
   }
 
-  // State machine sequence definition
-  const stateSteps = [
-    { label: "New Event", state: "NEW" },
-    { label: "AI Analysis", state: "ANALYZING" },
-    { label: "Case Ready", state: "READY" },
-    { label: "Policy Gate", state: "POLICY_CHECK" },
-    { label: "Approved", state: "APPROVED" },
-    { label: "Razorpay Exec", state: "EXECUTING" },
-    { label: "Webhook Verify", state: "WAITING_RESULT" },
-    { label: "Recovered", state: "RECOVERED" },
-  ];
-
-  const getStepStatus = (stepState: string) => {
-    if (caseDetail.status === "RECOVERED") return "completed";
-    if (caseDetail.status === "BLOCKED" || caseDetail.status === "STOPPED") {
-      if (["NEW", "ANALYZING", "READY", "POLICY_CHECK"].includes(stepState)) return "completed";
-      return "blocked";
-    }
-    if (caseDetail.status === "ESCALATED") {
-      if (["NEW", "ANALYZING", "READY", "POLICY_CHECK"].includes(stepState)) return "completed";
-      return "escalated";
-    }
-    if (stepState === caseDetail.status) return "current";
-    return "pending";
-  };
+  const isRecovered = caseDetail.status === "RECOVERED";
+  const isBlocked = caseDetail.status === "BLOCKED" || caseDetail.status === "STOPPED";
+  const isEscalated = caseDetail.status === "ESCALATED";
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-8 pb-12 max-w-5xl mx-auto">
       {/* Navigation & Header */}
       <div>
         <Link
           href="/cases"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors mb-3"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-sky-400 transition-colors mb-4"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Recovery Queue
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold tracking-tight text-white font-mono">{caseDetail.id}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white font-mono flex items-center gap-3">
+              {caseDetail.id}
+            </h1>
             <StatusBadge status={caseDetail.status} />
-            <span className="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-300 font-medium">
-              {caseDetail.priority} Priority
+            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold tracking-wider border ${caseDetail.source === 'synthetic' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
+              {caseDetail.source === 'synthetic' ? 'SYNTHETIC EVENT' : 'RAZORPAY TEST MODE'}
             </span>
-            <span className={`rounded-md px-2 py-1 text-[10px] font-mono font-bold tracking-wider border ${caseDetail.source === 'synthetic' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}>
-              Source: {caseDetail.source === 'synthetic' ? 'SYNTHETIC' : 'RAZORPAY TEST MODE'}
-            </span>
-            {caseDetail.subscription_id && (
-              <span className="rounded-md px-2 py-1 text-[10px] font-mono font-bold tracking-wider border bg-amber-500/10 text-amber-400 border-amber-500/20 flex items-center gap-1.5">
-                SUBSCRIPTION {caseDetail.provider_state === 'halted' ? 'HALTED' : 'FAILED'}
-              </span>
-            )}
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4">
             <CaseActions caseDetail={caseDetail} />
-            <div className="text-right">
-              <div className="text-xs text-slate-400">Amount at Risk</div>
-              <div className="text-2xl font-bold text-white tracking-tight">
-                {formatINR(caseDetail.amount_at_risk_paise)}
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Visual State Machine Stepper */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-          <Layers className="h-4 w-4 text-sky-400" />
-          State Machine Progression
-        </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {stateSteps.map((step, idx) => {
-            const stepStatus = getStepStatus(step.state);
-            let pillClass = "bg-slate-950 border-slate-800 text-slate-500";
-            if (stepStatus === "completed") {
-              pillClass = "bg-emerald-950/60 border-emerald-800 text-emerald-300";
-            } else if (stepStatus === "current") {
-              pillClass = "bg-sky-950/80 border-sky-600 text-sky-300 ring-2 ring-sky-500/20";
-            } else if (stepStatus === "blocked") {
-              pillClass = "bg-rose-950/40 border-rose-900/60 text-rose-400";
-            } else if (stepStatus === "escalated") {
-              pillClass = "bg-purple-950/40 border-purple-900/60 text-purple-400";
-            }
-
-            return (
-              <div key={idx} className="flex items-center gap-2">
-                <div className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${pillClass}`}>
-                  <span className="opacity-60 text-[10px] mr-1">0{idx + 1}</span>
-                  {step.label}
-                </div>
-                {idx < stateSteps.length - 1 && (
-                  <span className="text-slate-600 text-xs hidden md:inline">→</span>
-                )}
-              </div>
-            );
-          })}
+      {/* Top Banner: Status Outcome */}
+      <div className={`rounded-2xl border p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative overflow-hidden ${
+        isRecovered ? "bg-emerald-950/30 border-emerald-900/50" :
+        isBlocked ? "bg-rose-950/30 border-rose-900/50" :
+        isEscalated ? "bg-purple-950/30 border-purple-900/50" :
+        "bg-slate-900/50 border-slate-800"
+      }`}>
+        <div className="absolute right-0 top-0 bottom-0 w-64 bg-gradient-to-l from-current opacity-5 pointer-events-none" 
+             style={{ color: isRecovered ? '#10b981' : isBlocked ? '#f43f5e' : isEscalated ? '#a855f7' : '#38bdf8' }} />
+        
+        <div className="flex items-center gap-4 relative z-10">
+           <div className={`w-12 h-12 rounded-full flex items-center justify-center border shadow-lg ${
+             isRecovered ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" :
+             isBlocked ? "bg-rose-500/20 border-rose-500/30 text-rose-400" :
+             isEscalated ? "bg-purple-500/20 border-purple-500/30 text-purple-400" :
+             "bg-sky-500/20 border-sky-500/30 text-sky-400"
+           }`}>
+              {isRecovered ? <CheckCircle2 className="h-6 w-6" /> :
+               isBlocked ? <Ban className="h-6 w-6" /> :
+               isEscalated ? <UserCheck className="h-6 w-6" /> :
+               <Activity className="h-6 w-6" />}
+           </div>
+           <div>
+             <h2 className="text-lg font-bold text-white">
+               {isRecovered ? "Revenue Successfully Recovered" :
+                isBlocked ? "Recovery Blocked by Guardrails" :
+                isEscalated ? "Escalated for Human Review" :
+                "Recovery in Progress"}
+             </h2>
+             <p className="text-sm text-slate-400 mt-1 max-w-xl">
+                {caseDetail.invoice_id ? 
+                  "B2B Overdue Invoice recovery workflow." : 
+                  caseDetail.subscription_id ? "Subscription failure recovery workflow." : "Standard payment failure recovery workflow."}
+             </p>
+           </div>
+        </div>
+        
+        <div className="relative z-10 text-left sm:text-right">
+           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+             {isRecovered ? "Amount Recovered" : "Amount at Risk"}
+           </div>
+           <div className={`text-3xl font-extrabold tracking-tight ${
+             isRecovered ? "text-emerald-400" : "text-white"
+           }`}>
+             {formatINR(isRecovered ? caseDetail.amount_recovered_paise : caseDetail.amount_at_risk_paise)}
+           </div>
         </div>
       </div>
 
-      {/* Promise to Pay Banner */}
-      {caseDetail.promises && caseDetail.promises.length > 0 && (
-        <div className={`rounded-xl border p-5 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-          caseDetail.promises[0].status === 'BROKEN' ? 'border-rose-600/50 bg-rose-950/40' : 
-          caseDetail.promises[0].status === 'FULFILLED' ? 'border-emerald-600/50 bg-emerald-950/40' :
-          'border-indigo-600/50 bg-indigo-950/40'
-        }`}>
-          <div className="flex items-center gap-3.5">
-            <div className={`rounded-xl p-2.5 border ${
-              caseDetail.promises[0].status === 'BROKEN' ? 'bg-rose-500/20 border-rose-500/30' :
-              caseDetail.promises[0].status === 'FULFILLED' ? 'bg-emerald-500/20 border-emerald-500/30' :
-              'bg-indigo-500/20 border-indigo-500/30'
-            }`}>
-              <CalendarDays className={`h-6 w-6 ${
-                caseDetail.promises[0].status === 'BROKEN' ? 'text-rose-400' :
-                caseDetail.promises[0].status === 'FULFILLED' ? 'text-emerald-400' :
-                'text-indigo-400'
-              }`} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">
-                  {caseDetail.promises[0].status === 'BROKEN' ? 'Broken Promise' : 
-                   caseDetail.promises[0].status === 'FULFILLED' ? 'Promise Fulfilled' : 
-                   'Active Promise to Pay'}
-                </h3>
-                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-mono font-semibold border ${
-                  caseDetail.promises[0].status === 'PROMISED' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' :
-                  caseDetail.promises[0].status === 'BROKEN' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
-                  'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                }`}>
-                  {caseDetail.promises[0].status}
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Customer promised to pay by {new Date(caseDetail.promises[0].promise_date).toLocaleDateString()}.
-              </p>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* What Happened (Context) */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6">
+          <div className="flex items-center gap-2 mb-6">
+             <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400">
+               <FileText className="h-4 w-4" />
+             </div>
+             <h3 className="text-base font-semibold text-white">What Happened</h3>
           </div>
-          <div className="sm:text-right">
-            <span className={`text-xs ${
-              caseDetail.promises[0].status === 'BROKEN' ? 'text-rose-300/80' :
-              caseDetail.promises[0].status === 'FULFILLED' ? 'text-emerald-300/80' :
-              'text-indigo-300/80'
-            }`}>Promised Amount</span>
-            <div className={`text-2xl font-extrabold font-mono ${
-              caseDetail.promises[0].status === 'BROKEN' ? 'text-rose-400' :
-              caseDetail.promises[0].status === 'FULFILLED' ? 'text-emerald-400' :
-              'text-indigo-400'
-            }`}>
-              {formatINR(caseDetail.promises[0].promised_amount_paise)}
-            </div>
-          </div>
-        </div>
-      )}
+          
+          <div className="space-y-4">
+             <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-950/50 rounded-lg p-3 border border-slate-800/60">
+                   <div className="text-[10px] uppercase font-semibold text-slate-500 mb-1">Customer</div>
+                   <div className="font-medium text-slate-200">{caseDetail.customer?.name || caseDetail.customer_name || "Unknown"}</div>
+                   <div className="text-xs text-slate-400 mt-0.5">{caseDetail.customer?.email || caseDetail.customer_email || ""}</div>
+                </div>
+                <div className="bg-slate-950/50 rounded-lg p-3 border border-slate-800/60">
+                   <div className="text-[10px] uppercase font-semibold text-slate-500 mb-1">Status</div>
+                   <div className={`font-medium ${caseDetail.customer?.opted_out ? 'text-rose-400' : 'text-emerald-400'}`}>
+                     {caseDetail.customer?.opted_out ? 'Opted out of comms' : 'Consent active'}
+                   </div>
+                   <div className="text-xs text-slate-400 mt-0.5">Tier: {caseDetail.customer?.customer_value || "Unknown"}</div>
+                </div>
+             </div>
 
-      {/* Phase 4: Verified Recovery Banner */}
-      {caseDetail.status === "RECOVERED" && (
-        <div className="rounded-xl border border-emerald-600/50 bg-emerald-950/40 p-5 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="rounded-xl bg-emerald-500/20 p-2.5 border border-emerald-500/30">
-              <CheckCircle2 className="h-6 w-6 text-emerald-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">Revenue Successfully Recovered</h3>
-                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-mono text-emerald-300 font-semibold border border-emerald-500/40">
-                  VERIFIED WEBHOOK PROOF
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Payment verified via Razorpay webhook signature. Amount credited to merchant ledger.
-              </p>
-            </div>
-          </div>
-          <div className="sm:text-right">
-            <span className="text-xs text-emerald-300/80">Recovered Amount</span>
-            <div className="text-2xl font-extrabold text-emerald-400 font-mono">
-              {formatINR(caseDetail.amount_recovered_paise)}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Phase 4: Active Razorpay Payment Link Card */}
-      {(() => {
-        const plinkId = caseDetail.payment_link_id;
-        const shortUrl = caseDetail.payment_link_url;
-        const notifStatus = caseDetail.notification_status;
-        const paymentId = caseDetail.payment_id;
-
-        if (!plinkId && caseDetail.status !== "WAITING_RESULT") return null;
-
-        return (
-          <div className="rounded-xl border border-sky-600/40 bg-sky-950/30 p-4 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-sky-500/10 p-2 border border-sky-500/30 text-sky-400">
-                  <ExternalLink className="h-5 w-5" />
+             {caseDetail.invoice_id && (
+                <div className="bg-indigo-950/20 rounded-lg p-3 border border-indigo-900/30">
+                   <div className="text-[10px] uppercase font-semibold text-indigo-400 mb-2">Invoice Details</div>
+                   <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-300 font-mono">{caseDetail.external_invoice_id || caseDetail.invoice_id}</span>
+                      <span className="text-amber-400 font-medium">{caseDetail.days_overdue} days overdue</span>
+                   </div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-white">Active Razorpay Payment Link</span>
-                    <span className="rounded bg-sky-500/20 text-sky-300 text-[10px] font-mono px-2 py-0.5">
-                      TEST MODE
-                    </span>
-                  </div>
-                  {shortUrl && (
-                    <div className="text-xs font-mono text-sky-300 mt-1 select-all hover:underline">
-                      {shortUrl}
-                    </div>
-                  )}
+             )}
+             
+             {caseDetail.subscription_id && (
+                <div className="bg-amber-950/20 rounded-lg p-3 border border-amber-900/30">
+                   <div className="text-[10px] uppercase font-semibold text-amber-400 mb-2">Subscription Details</div>
+                   <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-300 font-mono">{caseDetail.subscription_id}</span>
+                      <span className="text-slate-300 uppercase">State: {caseDetail.provider_state}</span>
+                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {shortUrl && (
-                  <a
-                    href={shortUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-sky-600/60 bg-sky-900/40 px-3 py-1.5 text-xs font-medium text-sky-200 hover:bg-sky-800/60 transition-colors"
-                  >
-                    Open Link
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-              </div>
-            </div>
-            {/* Detail rows */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-sky-800/40 text-[11px]">
-              {plinkId && (
-                <div>
-                  <div className="text-slate-500">Payment Link ID</div>
-                  <div className="font-mono text-slate-300 mt-0.5 truncate">{plinkId}</div>
-                </div>
-              )}
-              {paymentId && (
-                <div>
-                  <div className="text-slate-500">Original Payment ID</div>
-                  <div className="font-mono text-slate-300 mt-0.5 truncate">{paymentId}</div>
-                </div>
-              )}
-              <div>
-                <div className="text-slate-500">Notification</div>
-                <div className={`font-mono font-medium mt-0.5 ${notifStatus === "SENT" || notifStatus === "DELIVERED" ? "text-emerald-400" : notifStatus === "FAILED" ? "text-rose-400" : "text-amber-400"}`}>
-                  {notifStatus || "Not yet executed"}
-                </div>
-              </div>
-              <div>
-                <div className="text-slate-500">Customer Contact</div>
-                <div className="text-slate-300 mt-0.5 truncate">{caseDetail.customer?.email || "Not available"}</div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-      
-      {/* What Happens Next */}
-      <div className="rounded-xl border border-indigo-500/20 bg-indigo-950/20 p-5 backdrop-blur-sm space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-indigo-400 flex items-center gap-2">
-          <Info className="h-4 w-4" /> What Happens Next
-        </h3>
-        <p className="text-sm text-slate-300 leading-relaxed font-medium">
-          {(() => {
-            if (caseDetail.invoice_id) {
-              if (caseDetail.status === "ESCALATED") return "High-value or aged overdue receivable routed to senior merchant review. No automated debit initiated.";
-              if (caseDetail.status === "WAITING_RESULT") return "Invoice reminder dispatched to customer billing contact. Awaiting verified payment receipt.";
-              if (caseDetail.status === "RECOVERED") return "Full invoice payment verified and reconciled with merchant ledger.";
-              if (caseDetail.status === "PARTIALLY_RECOVERED") return "Partial invoice payment recorded. Case remains open for outstanding balance.";
-            }
-            if (caseDetail.subscription_id && caseDetail.status === "WAITING_RESULT" || caseDetail.status === "READY") {
-              if (caseDetail.provider_state === 'pending') return "Subscription is in Razorpay's native retry loop. Waiting for Razorpay to successfully debit the customer.";
-              if (caseDetail.provider_state === 'halted') return "Subscription native retries exhausted. Customer action is required to update payment method.";
-            }
-            if (caseDetail.status === "WAITING_RESULT") return "Waiting for customer payment. A valid Razorpay Payment Link is active.";
-            if (caseDetail.status === "RECOVERED") return "Payment confirmed and recovery verified.";
-            if (caseDetail.status === "ESCALATED") return "Needs merchant review to proceed.";
-            if (caseDetail.status === "BLOCKED" || caseDetail.status === "STOPPED") return "Recovery stopped. No further automated attempts are allowed.";
-            if (caseDetail.status === "NEW" || caseDetail.status === "ANALYZING") return "Analyzing failure event to determine the best recovery action.";
-            if (caseDetail.status === "APPROVED") return "Authorized to execute recovery action.";
-            if (caseDetail.attempt_count >= (policy?.max_attempts || 0) && caseDetail.status !== "WAITING_RESULT") return "Maximum automated attempts reached.";
-            return "Pending evaluation.";
-          })()}
-        </p>
-      </div>
-
-      {/* Grid: Case Details & Intelligence */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Customer Context */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 space-y-4">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            <UserCheck className="h-4 w-4 text-indigo-400" />
-            Customer Intelligence
-          </div>
-          <div className="space-y-3 text-xs">
-            <div>
-              <div className="text-slate-500">Customer Name</div>
-              <div className="font-semibold text-slate-200 text-sm mt-0.5">
-                {caseDetail.customer?.name || caseDetail.customer_name || "Not available"}
-              </div>
-            </div>
-            <div>
-              <div className="text-slate-500">Contact</div>
-              <div className="text-slate-300 font-mono mt-0.5">
-                {caseDetail.customer?.email || caseDetail.customer_email || "Not available"}
-              </div>
-              <div className="text-slate-400 font-mono mt-0.5">
-                {caseDetail.customer?.phone || "Not available"}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-              <div>
-                <div className="text-slate-500">Payment Success Rate</div>
-                <div className={`font-semibold text-sm mt-0.5 ${caseDetail.customer?.success_rate != null ? 'text-emerald-400' : 'text-slate-500 font-normal italic'}`}>
-                  {caseDetail.customer?.success_rate != null ? formatPercent(caseDetail.customer.success_rate) : "Limited history"}
-                </div>
-              </div>
-              <div>
-                <div className="text-slate-500">Customer Tier</div>
-                <div className={`font-semibold text-sm mt-0.5 ${(caseDetail.customer?.customer_value && caseDetail.customer.customer_value !== "UNKNOWN") ? 'text-purple-400' : 'text-slate-500 font-normal italic'}`}>
-                  {(!caseDetail.customer?.customer_value || caseDetail.customer.customer_value === "UNKNOWN") ? "No previous history" : caseDetail.customer.customer_value}
-                </div>
-              </div>
-            </div>
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-              <span className="text-slate-500">Communication Opt-Out</span>
-              {caseDetail.customer ? (
-                <span className={`font-medium ${caseDetail.customer.opted_out ? "text-rose-400" : "text-emerald-400"}`}>
-                  {caseDetail.customer.opted_out ? "Opted Out" : "Consent Active"}
-                </span>
-              ) : (
-                <span className="font-medium text-slate-500 italic">Not available</span>
-              )}
-            </div>
+             )}
           </div>
         </div>
 
-        {/* AI Root Cause & Recommendation */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              <Zap className="h-4 w-4 text-sky-400" />
-              AI Root Cause & Decision
-            </div>
-            {caseDetail.latest_prediction && (
-              <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-mono text-emerald-400">
-                {caseDetail.latest_prediction.validation_status || "VALID"}
-              </span>
-            )}
+        {/* Why Settl Acted (AI) */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6">
+          <div className="flex items-center gap-2 mb-6">
+             <div className="w-8 h-8 rounded-lg bg-sky-900/30 border border-sky-800/40 flex items-center justify-center text-sky-400">
+               <Zap className="h-4 w-4" />
+             </div>
+             <h3 className="text-base font-semibold text-white">Why Settl Acted</h3>
           </div>
-          <div className="space-y-3 text-xs">
-            <div>
-              <div className="text-slate-500">Estimated Recovery Probability</div>
-              {caseDetail.recovery_probability > 0 ? (
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xl font-bold text-sky-400 font-mono">
-                    {formatPercent(caseDetail.recovery_probability)}
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    (Calibrated Risk Model)
-                  </span>
+
+          <div className="space-y-4">
+             <div className="bg-slate-950/50 rounded-lg p-4 border border-slate-800/60">
+                <div className="flex justify-between items-start mb-3">
+                   <div className="text-[10px] uppercase font-semibold text-slate-500">Root Cause Diagnostics</div>
+                   <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-900/50">
+                     {caseDetail.latest_prediction?.validation_status || "VALID"}
+                   </span>
                 </div>
-              ) : (
-                <div className="text-slate-400 italic mt-1">Not available</div>
-              )}
-            </div>
-            <div>
-              <div className="text-slate-500">Diagnostic Root Cause</div>
-              <div className={`mt-1 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 font-sans ${!caseDetail.root_cause ? 'text-slate-500 italic' : ''}`}>
                 {formatRootCause(caseDetail.root_cause)}
-              </div>
-            </div>
+             </div>
 
-            {/* Structured Evidence Tags removed to reduce text density */}
-
-            {caseDetail.subscription_id && (
-              <div className="pt-2 border-t border-slate-800">
-                <div className="text-slate-500">Subscription Context</div>
-                <div className="text-slate-300 mt-1 flex items-center gap-2">
-                  <span className="font-mono">{caseDetail.subscription_id}</span>
-                  <span className="rounded px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-800 text-slate-300 uppercase">
-                    State: {caseDetail.provider_state}
-                  </span>
+             <div className="flex gap-4">
+                <div className="flex-1 bg-slate-950/50 rounded-lg p-3 border border-slate-800/60 flex flex-col justify-center">
+                   <div className="text-[10px] uppercase font-semibold text-slate-500 mb-1">Recovery Probability</div>
+                   <div className="text-2xl font-bold text-sky-400">
+                     {Math.round(caseDetail.recovery_probability * 100)}%
+                   </div>
                 </div>
-              </div>
-            )}
-            {caseDetail.invoice_id && (
-              <div className="pt-2 border-t border-slate-800 space-y-2">
-                <div className="text-slate-500 font-semibold uppercase tracking-wider text-[10px] text-indigo-400">
-                  B2B Receivable Context
+                <div className="flex-[2] bg-slate-950/50 rounded-lg p-3 border border-slate-800/60">
+                   <div className="text-[10px] uppercase font-semibold text-slate-500 mb-1">AI Recommendation</div>
+                   <div className="font-semibold text-slate-200 mt-1 text-sm">
+                     {formatAction(caseDetail.recommended_action) || "Analyzing..."}
+                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                  <div>
-                    <span className="text-slate-500">Invoice ID</span>
-                    <div className="text-slate-200 font-mono font-medium truncate" title={caseDetail.external_invoice_id || caseDetail.invoice_id}>
-                      {caseDetail.external_invoice_id || caseDetail.invoice_id}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Due Date</span>
-                    <div className="text-slate-200 font-medium">
-                      {caseDetail.invoice_due_at ? formatDate(caseDetail.invoice_due_at) : "Exceeded"}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Days Overdue</span>
-                    <div className="text-amber-400 font-semibold">
-                      {caseDetail.days_overdue != null ? `${caseDetail.days_overdue} days` : "Past Due"}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Invoice Amount</span>
-                    <div className="text-slate-200 font-mono">
-                      {caseDetail.invoice_amount_paise ? formatINR(caseDetail.invoice_amount_paise) : formatINR(caseDetail.amount_at_risk_paise)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <div className="text-slate-500">Decision Agent Recommendation</div>
-              {caseDetail.recommended_action ? (
-                <div className="flex items-center justify-between font-semibold text-emerald-400 mt-1 bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-800/50">
-                  <span>{formatAction(caseDetail.recommended_action)}</span>
-                </div>
-              ) : (
-                <div className="mt-1 text-slate-500 italic">Not yet executed</div>
-              )}
-            </div>
-
-            {/* Model Trace & Latency */}
-            {caseDetail.latest_prediction && (
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                <span>Model: {caseDetail.latest_prediction.model_name}</span>
-                <span>Hash: {caseDetail.latest_prediction.features_hash || "n/a"}</span>
-              </div>
-            )}
+             </div>
           </div>
         </div>
+      </div>
 
-        {/* Policy Guardrails Gate */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 space-y-4">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            Policy Engine Authorization
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Policy Decision */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6">
+          <div className="flex items-center gap-2 mb-6">
+             <div className="w-8 h-8 rounded-lg bg-emerald-900/30 border border-emerald-800/40 flex items-center justify-center text-emerald-400">
+               <ShieldCheck className="h-4 w-4" />
+             </div>
+             <h3 className="text-base font-semibold text-white">Policy Decision</h3>
           </div>
+          
           {(() => {
             const policyLog = caseDetail.audit_logs.find(log => log.event_name.startsWith('POLICY_'));
             let decision = "WAITING";
@@ -531,100 +261,196 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             }
             
             return (
-              <div className="space-y-3 text-xs">
-                {policy && (
-                  <>
-                    <div className="flex flex-col py-2 border-b border-slate-800/60">
-                      <span className="text-slate-400">Amount</span>
-                      <div className="flex items-center gap-2 mt-0.5 text-slate-200">
-                        {caseDetail.amount_at_risk_paise <= policy.max_automated_amount_paise ? (
-                          <span className="text-emerald-400 font-bold">✓</span>
-                        ) : (
-                          <span className="text-rose-400 font-bold">X</span>
-                        )}
-                        <span>Within automated limit</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col py-2 border-b border-slate-800/60">
-                      <span className="text-slate-400">Attempts</span>
-                      <div className="flex items-center gap-2 mt-0.5 text-slate-200">
-                        {caseDetail.attempt_count < policy.max_attempts ? (
-                          <span className="text-emerald-400 font-bold">✓</span>
-                        ) : (
-                          <span className="text-rose-400 font-bold">X</span>
-                        )}
-                        <span>{caseDetail.attempt_count} of {policy.max_attempts}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col py-2 border-b border-slate-800/60">
-                      <span className="text-slate-400">Customer consent</span>
-                      <div className="flex items-center gap-2 mt-0.5 text-slate-200">
-                        {(!caseDetail.customer || !caseDetail.customer.opted_out) ? (
-                          <span className="text-emerald-400 font-bold">✓</span>
-                        ) : (
-                          <span className="text-rose-400 font-bold">X</span>
-                        )}
-                        <span>Contact allowed</span>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <div className="flex flex-col py-2 pt-4">
-                  <span className="text-slate-400">Policy decision</span>
-                  <div className="flex items-center gap-2 mt-0.5 text-slate-200">
-                    {decision === "ALLOW" ? (
-                      <span className="text-emerald-400 font-bold">✓</span>
-                    ) : (
-                      <span className="text-rose-400 font-bold">X</span>
-                    )}
-                    <span className={`font-semibold ${decision === "ALLOW" ? "text-emerald-400" : decision === "WAITING" ? "text-amber-400" : "text-rose-400"}`}>
-                      {decision === "ALLOW" ? "Approved" : decision}
-                    </span>
-                  </div>
+              <div className="space-y-4">
+                <div className="bg-slate-950/50 rounded-lg p-4 border border-slate-800/60">
+                   <div className="flex items-center justify-between mb-2">
+                     <span className="text-[10px] uppercase font-semibold text-slate-500">Guardrail Engine Outcome</span>
+                     <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                       decision === "ALLOW" ? "bg-emerald-950/50 text-emerald-400 border-emerald-900/50" : 
+                       decision === "WAITING" ? "bg-amber-950/50 text-amber-400 border-amber-900/50" : 
+                       "bg-rose-950/50 text-rose-400 border-rose-900/50"
+                     }`}>
+                       {decision === "ALLOW" ? "APPROVED" : decision}
+                     </span>
+                   </div>
+                   <p className="text-sm text-slate-300 font-medium">{explanation}</p>
                 </div>
+
+                {policy && (
+                  <div className="grid grid-cols-3 gap-2">
+                     <div className="bg-slate-950/50 rounded-lg p-2.5 border border-slate-800/60 text-center">
+                        <div className="text-[10px] uppercase font-semibold text-slate-500 mb-1 flex items-center justify-center gap-1">
+                          Amount {caseDetail.amount_at_risk_paise <= policy.max_automated_amount_paise ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Ban className="w-3 h-3 text-rose-500" />}
+                        </div>
+                        <div className="text-xs text-slate-300">Within limits</div>
+                     </div>
+                     <div className="bg-slate-950/50 rounded-lg p-2.5 border border-slate-800/60 text-center">
+                        <div className="text-[10px] uppercase font-semibold text-slate-500 mb-1 flex items-center justify-center gap-1">
+                          Attempts {caseDetail.attempt_count < policy.max_attempts ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Ban className="w-3 h-3 text-rose-500" />}
+                        </div>
+                        <div className="text-xs text-slate-300">{caseDetail.attempt_count} of {policy.max_attempts}</div>
+                     </div>
+                     <div className="bg-slate-950/50 rounded-lg p-2.5 border border-slate-800/60 text-center">
+                        <div className="text-[10px] uppercase font-semibold text-slate-500 mb-1 flex items-center justify-center gap-1">
+                          Consent {(!caseDetail.customer || !caseDetail.customer.opted_out) ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Ban className="w-3 h-3 text-rose-500" />}
+                        </div>
+                        <div className="text-xs text-slate-300">Verified</div>
+                     </div>
+                  </div>
+                )}
               </div>
             );
           })()}
         </div>
+
+        {/* What Settl Did (Execution) */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 flex flex-col">
+          <div className="flex items-center gap-2 mb-6">
+             <div className="w-8 h-8 rounded-lg bg-indigo-900/30 border border-indigo-800/40 flex items-center justify-center text-indigo-400">
+               <Activity className="h-4 w-4" />
+             </div>
+             <h3 className="text-base font-semibold text-white">What Settl Did</h3>
+          </div>
+          
+          <div className="flex-1 space-y-3">
+             {/* Promise logic */}
+             {caseDetail.promises && caseDetail.promises.length > 0 ? (
+                <div className={`bg-slate-950/50 rounded-lg p-4 border border-slate-800/60 flex items-start gap-3`}>
+                  <CalendarDays className={`h-5 w-5 mt-0.5 ${
+                    caseDetail.promises[0].status === 'BROKEN' ? 'text-rose-400' :
+                    caseDetail.promises[0].status === 'FULFILLED' ? 'text-emerald-400' :
+                    'text-indigo-400'
+                  }`} />
+                  <div>
+                    <div className="text-sm font-semibold text-white">Customer Promise Logged</div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Promised to pay {formatINR(caseDetail.promises[0].promised_amount_paise)} by {new Date(caseDetail.promises[0].promise_date).toLocaleDateString()}.
+                    </div>
+                    <div className={`text-[10px] font-mono font-bold mt-2 uppercase ${
+                      caseDetail.promises[0].status === 'BROKEN' ? 'text-rose-400' :
+                      caseDetail.promises[0].status === 'FULFILLED' ? 'text-emerald-400' :
+                      'text-indigo-400'
+                    }`}>
+                      STATUS: {caseDetail.promises[0].status}
+                    </div>
+                  </div>
+                </div>
+             ) : null}
+
+             {/* Link logic */}
+             {caseDetail.payment_link_url ? (
+                <div className="bg-slate-950/50 rounded-lg p-4 border border-slate-800/60 flex flex-col">
+                  <div className="flex items-start gap-3 mb-3">
+                     <ExternalLink className="h-5 w-5 mt-0.5 text-sky-400" />
+                     <div>
+                       <div className="text-sm font-semibold text-white">Payment Link Dispatched</div>
+                       <div className="text-xs text-slate-400 mt-1">
+                         A unique recovery checkout link was created and sent via {caseDetail.notification_status === "SENT" ? "email" : "system"}.
+                       </div>
+                     </div>
+                  </div>
+                  <a href={caseDetail.payment_link_url} target="_blank" rel="noreferrer" className="mt-auto bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold py-2 px-4 rounded flex items-center justify-center gap-2 transition-colors">
+                     View Payment Checkout <ArrowRight className="h-3 w-3" />
+                  </a>
+                </div>
+             ) : (
+                !caseDetail.promises?.length && (
+                  <div className="bg-slate-950/50 rounded-lg p-6 border border-slate-800/60 text-center flex flex-col items-center justify-center h-full">
+                     <Clock className="h-6 w-6 text-slate-500 mb-2" />
+                     <div className="text-sm font-medium text-slate-300">Pending Execution</div>
+                     <div className="text-xs text-slate-500 mt-1">Awaiting policy gate or external systems.</div>
+                  </div>
+                )
+             )}
+          </div>
+        </div>
       </div>
 
-      {/* Audit Trail Timeline */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 space-y-4">
-        <h2 className="text-base font-semibold text-white flex items-center gap-2">
+      {/* Recovery Timeline (Audit Trail) */}
+      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6">
+        <h2 className="text-base font-semibold text-white flex items-center gap-2 mb-6">
           <Clock className="h-4 w-4 text-sky-400" />
-          Technical Details & Audit Trail
+          Recovery Timeline
         </h2>
-        <p className="text-xs text-slate-400">
-          Append-only verifiable ledger of every event, agent recommendation, policy evaluation, and webhook receipt.
-        </p>
 
-        <div className="space-y-4 pt-2">
+        <div className="relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-800 before:to-transparent space-y-6">
           {caseDetail.audit_logs.length === 0 ? (
-            <div className="text-xs text-slate-500 italic">No audit events recorded yet.</div>
+            <div className="text-xs text-slate-500 italic text-center">No timeline events recorded yet.</div>
           ) : (
-            caseDetail.audit_logs.map((log) => (
-              <div
-                key={log.id}
-                className="flex items-start gap-4 rounded-lg border border-slate-800/80 bg-slate-950/60 p-3.5 text-xs"
-              >
-                <div className="rounded bg-slate-800 px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-300">
-                  {log.actor}
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-200 font-mono">{log.event_name}</span>
-                    <span className="text-[11px] text-slate-500">{formatDate(log.created_at)}</span>
+            caseDetail.audit_logs.map((log, idx) => {
+               // Determine icon based on actor/event
+               let Icon = Clock;
+               let color = "text-slate-400";
+               let bgClass = "bg-slate-950 border-slate-800";
+               
+               if (log.actor === "SYSTEM") {
+                  Icon = Zap;
+                  color = "text-sky-400";
+                  bgClass = "bg-sky-950 border-sky-900/50";
+               } else if (log.actor === "POLICY_ENGINE") {
+                  Icon = ShieldCheck;
+                  color = log.event_name === "POLICY_ALLOW" ? "text-emerald-400" : "text-rose-400";
+                  bgClass = log.event_name === "POLICY_ALLOW" ? "bg-emerald-950 border-emerald-900/50" : "bg-rose-950 border-rose-900/50";
+               } else if (log.actor === "WEBHOOK") {
+                  Icon = CheckCircle2;
+                  color = "text-emerald-400";
+                  bgClass = "bg-emerald-950 border-emerald-900/50";
+               } else if (log.actor === "USER") {
+                  Icon = UserCheck;
+                  color = "text-indigo-400";
+                  bgClass = "bg-indigo-950 border-indigo-900/50";
+               }
+
+               return (
+                <div key={log.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 relative z-10 ${bgClass}`}>
+                     <Icon className={`h-4 w-4 ${color}`} />
                   </div>
-                  <p className="text-slate-400 leading-relaxed">{log.reason}</p>
+                  <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-800/60 bg-slate-900/50 backdrop-blur-sm shadow hover:bg-slate-800/50 transition-colors">
+                     <div className="flex items-center justify-between mb-1">
+                        <div className={`text-[10px] font-bold font-mono uppercase tracking-wider ${color}`}>
+                           {log.event_name.replace(/_/g, " ")}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                           {formatDate(log.created_at)}
+                        </div>
+                     </div>
+                     <p className="text-xs text-slate-300 leading-relaxed font-medium mt-2">{log.reason}</p>
+                     <div className="text-[9px] text-slate-600 font-mono mt-3 uppercase">ACTOR: {log.actor}</div>
+                  </div>
                 </div>
-              </div>
-            ))
+               )
+            })
           )}
         </div>
       </div>
+
+      {/* Technical Details Accordion */}
+      <details className="group rounded-xl border border-slate-800 bg-slate-900/20 [&_summary::-webkit-details-marker]:hidden">
+         <summary className="flex cursor-pointer items-center justify-between p-4 font-semibold text-slate-400 hover:text-slate-300 transition-colors select-none">
+            <div className="flex items-center gap-2">
+               <Layers className="h-4 w-4" />
+               Raw Technical Details
+            </div>
+            <ChevronDown className="h-4 w-4 transition duration-300 group-open:-rotate-180" />
+         </summary>
+         <div className="p-4 pt-0 border-t border-slate-800/50 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[10px] font-mono text-slate-500">
+               <div className="space-y-1">
+                  <div><strong>ID:</strong> {caseDetail.id}</div>
+                  <div><strong>Source:</strong> {caseDetail.source}</div>
+                  <div><strong>Created:</strong> {caseDetail.created_at}</div>
+                  <div><strong>Updated:</strong> {caseDetail.updated_at}</div>
+               </div>
+               <div className="space-y-1">
+                  <div><strong>Model Name:</strong> {caseDetail.latest_prediction?.model_name || "N/A"}</div>
+                  <div><strong>Model Version:</strong> {caseDetail.latest_prediction?.model_version || "N/A"}</div>
+                  <div><strong>Features Hash:</strong> {caseDetail.latest_prediction?.features_hash || "N/A"}</div>
+                  <div><strong>Raw Prob:</strong> {caseDetail.latest_prediction?.probability || "N/A"}</div>
+               </div>
+            </div>
+         </div>
+      </details>
     </div>
   );
 }
