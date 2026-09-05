@@ -63,6 +63,9 @@ def list_recovery_cases(
                 customer_name=cust_name,
                 customer_email=cust_email,
                 source=c.revenue_event.source if c.revenue_event else None,
+                subscription_id=c.subscription_id,
+                billing_cycle_id=c.billing_cycle_id,
+                provider_state=c.provider_state,
                 created_at=c.created_at,
                 updated_at=c.updated_at
             )
@@ -195,6 +198,9 @@ def get_recovery_case(
         failure_reason=failure_reason,
         source=source,
         payment_id=payment_id_val,
+        subscription_id=c.subscription_id,
+        billing_cycle_id=c.billing_cycle_id,
+        provider_state=c.provider_state,
         actions=actions,
         audit_logs=audit_logs,
         latest_prediction=latest_pred_resp,

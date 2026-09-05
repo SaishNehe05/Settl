@@ -77,6 +77,9 @@ def get_dashboard_summary(
                 customer_name=cust_name,
                 customer_email=cust_email,
                 source=c.revenue_event.source if c.revenue_event else None,
+                subscription_id=c.subscription_id,
+                billing_cycle_id=c.billing_cycle_id,
+                provider_state=c.provider_state,
                 created_at=c.created_at,
                 updated_at=c.updated_at
             )
