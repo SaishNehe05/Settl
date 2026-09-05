@@ -21,6 +21,9 @@ import hashlib
 import hmac
 import requests
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 # Load env
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
@@ -32,7 +35,7 @@ RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
 RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "qwerty@settl")
 API_BASE = os.getenv("API_URL", "http://127.0.0.1:8000")
-MERCHANT_ID = "MER_DEMO_01"
+MERCHANT_ID = os.getenv("MERCHANT_ID", "MER_40216e9905ee")
 
 if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
     print("❌ RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set in .env")
@@ -220,19 +223,9 @@ print("=" * 60)
 time.sleep(3)
 
 try:
-    # Get auth token first
-    login_resp = requests.post(
-        f"{API_BASE}/api/v1/auth/login",
-        json={"email": "admin@settl.dev", "password": "admin123"},
-        timeout=10,
-    )
-    if login_resp.status_code == 200:
-        token = login_resp.json().get("access_token", "")
-    else:
-        token = ""
-        print(f"⚠️  Login failed ({login_resp.status_code}), trying without auth...")
-
-    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    from app.services.auth_service import create_access_token
+    token = create_access_token(data={"sub": MERCHANT_ID, "email": "saishnehe2006@gmail.com"})
+    headers = {"Authorization": f"Bearer {token}"}
     
     cases_resp = requests.get(
         f"{API_BASE}/api/v1/recovery-cases",
