@@ -7,13 +7,20 @@ import { useAuth } from "@/components/auth/auth-provider";
 const PUBLIC_PATHS = ["/login"];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { token, isReady } = useAuth();
+  const { token, isReady, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     if (!isReady) return;
     
+    // Check for clear query param directly to avoid Next.js Suspense deopts
+    if (typeof window !== "undefined" && window.location.search.includes("clear=1")) {
+      logout();
+      router.replace("/login");
+      return;
+    }
+
     const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
     
     if (!token && !isPublic) {
@@ -23,7 +30,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (token && isPublic) {
       router.replace("/");
     }
-  }, [token, isReady, pathname, router]);
+  }, [token, isReady, pathname, router, logout]);
 
   if (!isReady) {
     return (
