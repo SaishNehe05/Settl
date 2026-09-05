@@ -2,9 +2,9 @@
 
 [![Razorpay Buildathon](https://img.shields.io/badge/Razorpay_Buildathon-Track_03:_AI_Revenue_Recovery-0C2340?style=for-the-badge&logo=razorpay)](https://razorpay.com)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
-[![Next.js 15](https://img.shields.io/badge/Next.js_15-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
+[![Next.js 16](https://img.shields.io/badge/Next.js_16-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![Supabase Postgres](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
-[![Tests Passing](https://img.shields.io/badge/Tests-41%2F41_Passing-10B981?style=for-the-badge)](https://github.com)
+[![Tests](https://img.shields.io/badge/Tests-70_Passing-10B981?style=for-the-badge)](https://github.com)
 
 > **Core System Invariant:**  
 > *AI models recommend; deterministic policy code authorizes; Razorpay executes; cryptographically verified webhooks confirm recovery.*
@@ -15,7 +15,7 @@
 
 Modern Indian e-commerce merchants lose **15%–30% of gross transaction value** to payment failures, 2FA verification drops, and checkout abandonment. Traditional dunning tools spam customers blindly with static retries, leading to customer churn, high outreach costs, and privacy opt-out violations.
 
-**Settl** is an autonomous revenue recovery agent designed specifically for Indian retail and D2C commerce. It diagnoses the root cause of every transaction failure, scores customer recoverability, routes through optimal communication channels (WhatsApp, SMS, Email), and enforces strict mathematical financial guardrails before generating dynamic Razorpay Payment Links.
+**Settl** is an autonomous revenue recovery agent designed for Indian retail and D2C commerce. It diagnoses the root cause of every transaction failure, scores customer recoverability, routes through optimal communication channels (WhatsApp, SMS, Email), and enforces strict mathematical financial guardrails before generating dynamic Razorpay Payment Links.
 
 ---
 
@@ -26,6 +26,8 @@ flowchart TD
     subgraph Ingestion["1. Revenue Leakage Ingestion"]
         E1["Payment Failure (Razorpay/UPI)"] --> ING["Event Ingestion Service"]
         E2["Checkout Abandonment"] --> ING
+        E3["Subscription Churn"] --> ING
+        E4["Invoice Overdue (B2B)"] --> ING
         ING --> IDEM["SHA-256 Deduplication Ledger"]
         IDEM --> CASE["Create / Resume Recovery Case"]
     end
@@ -77,46 +79,34 @@ Settl's LLMs are strictly bounded by code-level policy guardrails configured per
 
 ---
 
-## ⚡ Primary End-to-End Test Loop Verification
+## ⚡ Recovery Case Lifecycle (6 Supported Scenarios)
 
-### 1. Primary Recovery Case (`CASE_8499_RECOVERABLE`)
-* **Customer:** Arjun Mehta (85% historical success rate, High Tier).
-* **Failure Event:** ₹8,499 payment failure (`temporary_bank_failure`).
-* **Lifecycle:**
-  `01 New Event` &rarr; `02 AI Analysis` &rarr; `03 Case Ready` &rarr; `04 Policy Gate` &rarr; `05 Approved` &rarr; `06 Razorpay Exec` &rarr; `07 Webhook Verify` &rarr; `08 Recovered`.
-* **Verified Result:** Live Razorpay Test Mode Payment Link generated (`https://rzp.io/i/plink_test_91ed04eb39b7`). Upon customer payment, incoming webhook raw bytes were cryptographically validated with HMAC-SHA256, and ₹8,499 was credited to merchant revenue ledger with the emerald verification badge.
+Settl handles six distinct recovery scenarios end-to-end:
 
-### 2. Guardrail Stopping Rule (`CASE_OPTOUT`)
-* **Customer:** Priya Nair (`opted_out = True`).
-* **Enforcement:** The policy engine detected communication opt-out, issued `BLOCK`, created **zero** payment links, and logged immutable audit proof.
-
-### 3. High-Value Escalation (`CASE_HIGH_VALUE`)
-* **Transaction:** ₹35,000 / ₹45,000 failure exceeding the ₹10,000 autonomous threshold.
-* **Enforcement:** Automatically halted in `ESCALATED` awaiting human operator review.
+| Case | Scenario | Lifecycle | Razorpay Integration |
+| :--- | :--- | :--- | :--- |
+| **Case 1** | Payment Failure Recovery | Event → AI Analysis → Policy Gate → Razorpay Payment Link → Webhook Verification → Recovered | Payment Links API |
+| **Case 2** | Checkout Abandonment | Session Timeout Detection → Recovery Link Generation → Customer Checkout Completion | Payment Links API |
+| **Case 3** | Subscription Churn Prevention | `subscription.pending` Webhook → Churn Risk Analysis → Recovery Payment Link → `subscription.charged` Confirmation | Subscriptions API |
+| **Case 4** | Invoice Overdue (B2B) | `INVOICE_OVERDUE` Event → Aging Analysis → Payment Link / Escalation | Payment Links API |
+| **Case 5** | Promise-to-Pay Tracking | Manual / Automated Promise Recording → Lifecycle Worker → Overdue Detection → Follow-up | Promise Worker |
+| **Case 6** | Guardrail Enforcement | Opt-out / High-value / Max-attempts → `BLOCKED` or `ESCALATED` with zero links generated | Policy Engine |
 
 ---
 
-## 📊 Phase 6: Empirical Evaluation Benchmark (5,000 Synthetic Events)
+## 📊 Empirical Evaluation Benchmark (5,000 Synthetic Events)
 
-> **Official Razorpay Constraint Handled:** Razorpay accounts enforce a 30-Payment-Link quota in Test Mode. Settl strictly isolates the 5,000-event benchmark simulation from live actions. Real API calls are reserved exclusively for live merchant cases.
+> **Razorpay Constraint Handled:** Razorpay accounts enforce a 30-Payment-Link quota in Test Mode. Settl strictly isolates the 5,000-event benchmark simulation from live actions.
 
 ### Comparative Strategy Benchmark (1,000 Locked Test Events)
 
-| Evaluation Metric | Settl AI Autonomous Agent | Naive Retries Baseline | No-Action Baseline | Settl Advantage |
+| Evaluation Metric | Settl AI Agent | Naive Retries Baseline | No-Action Baseline | Settl Advantage |
 | :--- | :--- | :--- | :--- | :--- |
 | **Outreach Precision** | **82.3%** | 71.1% | 0.0% | **+11.25 pts precision** |
 | **Outreach Recall** | **94.5%** | 100.0% | 0.0% | Focused targeting |
-| **Wasted Outreach (False Positives)** | **144 attempts** | 289 attempts | 0 | **-145 wasted outreach** |
-| **Guardrail Halts & Opt-Outs** | **139 blocked** | 0 (Spams all) | — | **100% consent honored** |
-| **Gross Recovered Revenue** | **₹27,68,300** | ₹31,47,675 | ₹0 | High-quality recovery |
-| **Delivery Cost Incurred** | **₹372.75** | ₹200.00 | ₹0 | Optimized channels |
+| **Wasted Outreach** | **144 attempts** | 289 attempts | 0 | **-145 wasted outreach** |
+| **Guardrail Halts** | **139 blocked** | 0 (Spams all) | — | **100% consent honored** |
 | **Net Recovered Revenue** | **₹27,67,927** | ₹31,47,475 | ₹0 | **₹27.67L Net INR** |
-
-### Confusion Matrix Breakdown
-* **True Positives (Recovered):** `672` (Genuine failures recovered)
-* **False Positives (Wasted Attempts):** `144` (Unrecoverable attempts made)
-* **True Negatives (Correct Stops):** `145` (Safely halted by guardrails)
-* **False Negatives (Missed):** `39` (Uncaptured recoverable leaks)
 
 ---
 
@@ -125,9 +115,18 @@ Settl's LLMs are strictly bounded by code-level policy guardrails configured per
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+
-- Active Supabase PostgreSQL pooler or local PostgreSQL
+- Active Supabase PostgreSQL pooler or local PostgreSQL / SQLite
 
-### 1. Backend Setup (`apps/api`)
+### 1. Clone & Configure Environment
+
+```bash
+git clone https://github.com/SaishNehe05/Settl.git
+cd Settl
+cp .env.example .env
+# Edit .env with your Razorpay, Supabase, and LLM credentials
+```
+
+### 2. Backend Setup (`apps/api`)
 
 ```bash
 cd apps/api
@@ -140,115 +139,163 @@ python -m venv .venv
 # Install dependencies
 pip install -r requirements.txt
 
-# Run migrations & seed demo merchant data
+# Run database migrations & seed demo merchant data
 alembic upgrade head
 python -m app.scripts.seed_db
 
 # Start FastAPI server
 uvicorn app.main:app --port 8000 --reload
 ```
-API Documentation will be live at: `http://localhost:8000/docs`.
 
-### 2. Frontend Setup (`apps/web`)
+API documentation → `http://localhost:8000/docs`
+
+### 3. Frontend Setup (`apps/web`)
 
 ```bash
 cd apps/web
-
-# Install dependencies
 npm install
-
-# Build optimized production bundle
-npm run build
-
-# Start Next.js server
-npm run start -- -p 3000
+npm run dev
 ```
-Merchant Command Center will be live at: `http://localhost:3000`.
 
-### 3. Running Automated Tests
+Merchant Command Center → `http://localhost:3000`
 
-Run the complete 41-test suite covering authentication, ingestion, risk models, AI Pydantic contracts, deterministic guardrails, Razorpay link generation, HMAC webhooks, and benchmark simulations:
+### 4. Demo Store (Optional)
+
+```bash
+cd apps/demo-store
+# Open index.html in browser — simulates customer checkout abandonment
+```
+
+### 5. One-Command Start (Both Servers)
+
+```bash
+python scripts/run_dev.py
+```
+
+### 6. Running Automated Tests
 
 ```bash
 cd apps/api
 pytest -v
 ```
-*(All 41 tests complete in under 3.0 seconds).*
-
----
-
-## ☁️ 1-Click Cloud Deployment
-
-To host this project on a live URL for your GitHub repository and hackathon submission:
-
-### 1. Backend (FastAPI to Render)
-The repository includes a `render.yaml` file configured for 1-click deployment.
-1. Push your repository to GitHub.
-2. Go to [Render.com](https://render.com) and click **New > Blueprint**.
-3. Connect your GitHub repository.
-4. Render will automatically detect the `render.yaml` and deploy the FastAPI backend.
-5. Add your `.env` variables (like `RAZORPAY_KEY_ID`, `DATABASE_URL`) in the Render Dashboard.
-6. Note the deployed URL (e.g., `https://settl-api.onrender.com`).
-
-### 2. Frontend (Next.js to Vercel)
-Vercel has native support for monorepos.
-1. Go to [Vercel.com](https://vercel.com) and click **Add New Project**.
-2. Connect your GitHub repository.
-3. When configuring the project, set the **Root Directory** to `apps/web`.
-4. Add the following Environment Variable:
-   - `NEXT_PUBLIC_API_URL` = `https://settl-api.onrender.com` (Your Render Backend URL)
-5. Click **Deploy**.
-
-Once both are deployed, paste your Vercel URL into your GitHub repository's "Website" field!
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-d:/Settl/
+Settl/
 ├── apps/
-│   ├── api/                              # FastAPI Backend
-│   │   ├── alembic/                      # Database migrations
+│   ├── api/                                  # FastAPI Backend (Python)
+│   │   ├── alembic/                          # Database migrations
 │   │   ├── app/
-│   │   │   ├── api/v1/                   # REST endpoints (cases, webhooks, evaluation, etc.)
-│   │   │   ├── core/                     # Configuration & JWT security
-│   │   │   ├── db/                       # SQLAlchemy session & pooler setup
-│   │   │   ├── evaluation/               # 5k Dataset generator & simulation engine
-│   │   │   ├── models/                   # 12 PostgreSQL database models
-│   │   │   ├── schemas/                  # Pydantic structured output models
-│   │   │   └── services/                 # AI service, Policy engine, Razorpay service
-│   │   ├── data/                         # 4k Dev & 1k Locked Test JSON datasets
-│   │   └── tests/                        # 41 comprehensive pytest suites
-│   └── web/                              # Next.js 15 App Router Frontend
-│       ├── app/                          # Dashboard, Cases, Detail, Policies, Evaluation
-│       ├── components/                   # Modular UI components & Action buttons
-│       └── types/                        # Shared TypeScript API interfaces
-├── Settl/                                # Complete Obsidian Knowledge Vault
-│   ├── 00 Dashboard/                     # Status and progress trackers
-│   ├── 01 PRD & Requirements/            # Product requirements
-│   ├── 02 Architecture/                  # System diagrams & database schema
-│   ├── 03 Development/                   # Roadmap, current sprint, checklist
-│   └── 09 Daily Logs/                    # Chronological engineering logs
-├── README.md                             # Repository Master Documentation
-└── PLAN.md                               # Project execution blueprint
+│   │   │   ├── agents/                       # Deterministic risk engine
+│   │   │   │   └── risk_engine.py            # Feature extraction & probability calibration
+│   │   │   ├── api/v1/                       # REST API endpoints
+│   │   │   │   ├── auth.py                   # JWT authentication & registration
+│   │   │   │   ├── cases.py                  # Recovery case CRUD & actions
+│   │   │   │   ├── checkout.py               # Checkout session management
+│   │   │   │   ├── dashboard.py              # KPI summary & analytics
+│   │   │   │   ├── demo.py                   # Demo simulation endpoints
+│   │   │   │   ├── evaluation.py             # Batch evaluation benchmark
+│   │   │   │   ├── events.py                 # Revenue event ingestion
+│   │   │   │   ├── policies.py               # Policy configuration
+│   │   │   │   ├── receivables.py            # Receivables status tracking
+│   │   │   │   └── webhooks.py               # Razorpay webhook receiver
+│   │   │   ├── models/                       # 14 SQLAlchemy database models
+│   │   │   ├── schemas/                      # Pydantic request/response schemas
+│   │   │   ├── scripts/                      # DB seeding & eval dataset generation
+│   │   │   └── services/                     # Core business logic
+│   │   │       ├── ai_service.py             # LLM structured output integration
+│   │   │       ├── audit_service.py          # Immutable audit trail
+│   │   │       ├── auth_service.py           # JWT token management
+│   │   │       ├── evaluation_service.py     # 5k benchmark simulation engine
+│   │   │       ├── event_service.py          # Revenue event processing
+│   │   │       ├── notification_service.py   # Multi-channel notification routing
+│   │   │       ├── policy_service.py         # 6-rule deterministic guardrails
+│   │   │       ├── promise_worker.py         # Promise-to-pay lifecycle worker
+│   │   │       ├── razorpay_service.py       # Razorpay SDK integration
+│   │   │       ├── recovery_service.py       # Recovery orchestration
+│   │   │       ├── webhook_classifier.py     # Webhook event classification
+│   │   │       ├── webhook_normalizer.py     # Payload normalization
+│   │   │       ├── webhook_processor.py      # Webhook-to-case pipeline
+│   │   │       └── webhook_worker.py         # Async webhook retry worker
+│   │   ├── data/                             # Evaluation datasets (4k dev + 1k locked test)
+│   │   └── tests/                            # 70 comprehensive pytest suites
+│   │       ├── conftest.py                   # SQLite in-memory test fixtures
+│   │       ├── test_ai_service.py            # LLM contract validation
+│   │       ├── test_auth.py                  # Authentication & JWT tests
+│   │       ├── test_case1_recovery.py        # Full payment recovery pipeline
+│   │       ├── test_dashboard.py             # Dashboard API tests
+│   │       ├── test_end_to_end_loop.py       # Complete E2E recovery loop
+│   │       ├── test_event_service.py         # Event ingestion tests
+│   │       ├── test_health.py                # Health check endpoint
+│   │       ├── test_policy_engine.py         # Guardrail enforcement tests
+│   │       ├── test_razorpay_service.py      # Razorpay integration tests
+│   │       ├── test_risk_engine.py           # Risk model accuracy tests
+│   │       ├── test_state_machine.py         # Case state transition tests
+│   │       ├── test_webhook_integration.py   # Webhook pipeline tests
+│   │       └── test_webhooks.py              # Webhook signature verification
+│   ├── demo-store/                           # Customer-facing demo checkout page
+│   │   ├── index.html                        # HTML checkout simulator
+│   │   ├── app.js                            # Checkout & Razorpay integration
+│   │   └── style.css                         # Demo store styling
+│   └── web/                                  # Next.js 16 Merchant Command Center
+│       ├── app/
+│       │   ├── page.tsx                      # Executive overview dashboard
+│       │   ├── cases/page.tsx                # Recovery queue with filters
+│       │   ├── cases/[id]/page.tsx           # Case detail command center
+│       │   ├── evaluation/page.tsx           # Batch evaluation & benchmarks
+│       │   ├── login/page.tsx                # Authentication (login/register)
+│       │   └── policies/page.tsx             # Policy & guardrail configuration
+│       ├── components/
+│       │   ├── auth/                         # Auth provider & guards
+│       │   ├── cases/                        # Case actions, status badges, manual creation
+│       │   └── layout/                       # Navbar, sidebar, client layout shell
+│       ├── lib/                              # API client, auth helpers, utilities
+│       └── types/                            # TypeScript API type definitions
+├── scripts/
+│   └── run_dev.py                            # One-command dev environment launcher
+├── .env.example                              # Environment variable template
+├── render.yaml                               # Render.com 1-click deployment config
+└── README.md                                 # This file
 ```
+
+---
+
+## ☁️ Cloud Deployment
+
+### Backend → Render
+
+The repository includes a `render.yaml` for 1-click deployment:
+1. Push to GitHub → Go to [render.com](https://render.com) → **New > Blueprint**
+2. Connect your repo — Render auto-detects the config
+3. Add environment variables (`DATABASE_URL`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, etc.)
+
+### Frontend → Vercel
+
+1. Go to [vercel.com](https://vercel.com) → **Add New Project**
+2. Connect your GitHub repo → Set **Root Directory** to `apps/web`
+3. Add `NEXT_PUBLIC_API_URL` pointing to your Render backend URL
+4. Deploy
 
 ---
 
 ## 🏆 Razorpay Buildathon Compliance Matrix
 
-| Requirement | Implementation Verification | Status |
+| Requirement | Implementation | Status |
 | :--- | :--- | :--- |
-| **Real Razorpay Test Mode** | Official Razorpay Python SDK integration with paise calculation and idempotency | ✅ Complete |
-| **Cryptographic Webhook Verification** | HMAC-SHA256 raw request body signature verification | ✅ Complete |
-| **Deterministic Guardrails** | Code-enforced stopping rules for opt-outs, max attempts, and high-value limits | ✅ Complete |
-| **Structured Output AI** | Validated Pydantic models with grounded evidence tags and model prediction logging | ✅ Complete |
-| **Second Scenario** | Checkout Abandonment detection and recovery workflows | ✅ Complete |
-| **5,000 Benchmark Dataset** | 4,000 Dev / 1,000 Locked Test evaluation dataset with ground-truth labels | ✅ Complete |
-| **Offline Benchmark Separation** | Complete decoupling of 5,000-case simulation from 30-link Razorpay test quota | ✅ Complete |
-| **Audit Trail & Observability** | Immutable event ledger logging every recommendation, policy check, and webhook | ✅ Complete |
+| **Real Razorpay Test Mode** | Official Python SDK with paise calculation and idempotency | ✅ |
+| **Cryptographic Webhook Verification** | HMAC-SHA256 raw request body signature verification | ✅ |
+| **Deterministic Guardrails** | 6 code-enforced stopping rules (opt-out, max attempts, amount ceiling, probability, cooldown, fraud) | ✅ |
+| **Structured Output AI** | Pydantic-validated LLM responses with grounded evidence tags | ✅ |
+| **Multiple Recovery Scenarios** | 6 distinct cases (payment failure, checkout abandonment, subscription churn, invoice overdue, promise-to-pay, guardrail enforcement) | ✅ |
+| **5,000 Benchmark Dataset** | 4,000 dev + 1,000 locked test evaluation with ground-truth labels | ✅ |
+| **Offline Benchmark Separation** | Complete decoupling from Razorpay 30-link test quota | ✅ |
+| **Audit Trail & Observability** | Immutable append-only event ledger on every transition | ✅ |
+| **Multi-Tenant Architecture** | JWT-authenticated merchant isolation with per-tenant data scoping | ✅ |
+| **Comprehensive Test Suite** | 70 automated tests covering all services, APIs, and integrations | ✅ |
 
 ---
 
-*Built with precision for the **Razorpay Buildathon — Track 03: AI Revenue Recovery**.*
+*Built for the **Razorpay Buildathon — Track 03: AI Revenue Recovery**.*
