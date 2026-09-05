@@ -343,6 +343,19 @@ def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Di
             
             merchant_name = case.merchant.name if case.merchant else "Settl Merchant"
 
+            plink_action = next(
+                (a for a in case.recovery_actions
+                 if a.action_type == "CREATE_PAYMENT_LINK" and a.razorpay_entity_id),
+                None
+            )
+            payment_link_url = None
+            if plink_action and plink_action.response_payload:
+                payment_link_url = plink_action.response_payload.get("short_url")
+            if plink_action and plink_action.razorpay_entity_id and not payment_link_url:
+                payment_link_url = f"https://rzp.io/i/{plink_action.razorpay_entity_id}"
+            
+            payment_instructions = f"Please complete the payment using this link: {payment_link_url}" if payment_link_url else "Please complete the payment using the merchant's payment instructions."
+
             if broken_promise:
                 inv_ref = case.invoice.external_invoice_id or case.invoice_id or "N/A" if case.invoice else "N/A"
                 due_str = broken_promise.promise_date.strftime("%Y-%m-%d")
@@ -351,20 +364,20 @@ def execute_approved_action(db: Session, case_id: str) -> Tuple[RecoveryCase, Di
                     f"Your promised payment of ₹{broken_promise.promised_amount_paise/100:,.2f} for invoice {inv_ref} "
                     f"was due on {due_str}.\n\n"
                     f"Our records do not yet show a verified payment.\n\n"
-                    f"Please complete the payment using the merchant's payment instructions.\n\n"
+                    f"{payment_instructions}\n\n"
                     f"Regards,\n{merchant_name}"
                 )
                 msg_type = "PROMISE_REMINDER"
             elif case.invoice:
                 inv_ref = case.invoice.external_invoice_id or case.invoice_id or "N/A"
                 due_str = case.invoice.due_at.strftime("%Y-%m-%d") if case.invoice.due_at else "passed"
-                msg_content = f"Payment Reminder: Invoice {inv_ref} for ₹{case.amount_at_risk_paise/100:,.2f} is overdue (due date: {due_str}). Please process payment.\n\nRegards,\n{merchant_name}"
+                msg_content = f"Payment Reminder: Invoice {inv_ref} for ₹{case.amount_at_risk_paise/100:,.2f} is overdue (due date: {due_str}).\n\n{payment_instructions}\n\nRegards,\n{merchant_name}"
                 msg_type = "INVOICE_REMINDER"
             elif case.subscription_id:
-                msg_content = f"Please update your payment instrument for subscription {case.subscription_id}.\n\nRegards,\n{merchant_name}"
+                msg_content = f"Please update your payment instrument for subscription {case.subscription_id}.\n\n{payment_instructions}\n\nRegards,\n{merchant_name}"
                 msg_type = "CUSTOMER_ACTION"
             else:
-                msg_content = f"Payment reminder for outstanding amount ₹{case.amount_at_risk_paise/100:,.2f}.\n\nRegards,\n{merchant_name}"
+                msg_content = f"Payment reminder for outstanding amount ₹{case.amount_at_risk_paise/100:,.2f}.\n\n{payment_instructions}\n\nRegards,\n{merchant_name}"
                 msg_type = "PAYMENT_REMINDER"
 
             notif_status = "PENDING" if recipient_addr != "unknown" else "FAILED"
